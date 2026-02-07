@@ -17,7 +17,7 @@ const mockProducts: Product[] = [
     tags: ["Organic", "Local"],
     rating: 4.5,
     reviewsCount: 128,
-    origin: "India",
+    origin: "Himalayan Farms",
     harvestDate: "2023-05-15",
     freshness: "Very Fresh"
   }
@@ -32,19 +32,14 @@ const mockUserData: User = {
   avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=demo"
 };
 
-const mockWalletData: WalletData = {
-  balance: 1500,
-  transactions: []
-};
-
 let sessionActive = false;
 
 const secureRequest = async <T>(callback: () => T, options: RequestInit = {}): Promise<T> => {
   const protectedOptions = addCSRFProtection(options);
   if (!protectedOptions.headers || !protectedOptions.headers['X-Requested-With']) {
-    throw new Error("Security Error");
+    throw new Error("Security check failed");
   }
-  await new Promise(r => setTimeout(r, 300));
+  await new Promise(r => setTimeout(r, 200));
   return callback();
 };
 
@@ -52,18 +47,15 @@ export const apiService = {
   login: async (e: string, p: string) => secureRequest(() => {
     if (e === "demo@example.com" && p === "demo123") { sessionActive = true; return true; }
     return false;
-  }),
+  }, { method: 'POST' }),
   logout: async () => { sessionActive = false; },
   getMe: async () => secureRequest(() => sessionActive ? mockUserData : null),
   getProduct: async (id: string) => secureRequest(() => mockProducts.find(p => p.id === id) || null),
   getProducts: async () => secureRequest(() => [...mockProducts]),
-  getWalletData: async () => secureRequest(() => mockWalletData),
-  rechargeWallet: async (amt: number) => secureRequest(() => {
-    mockWalletData.balance += amt;
-    return { success: true, newBalance: mockWalletData.balance };
-  }),
+  getWalletData: async () => secureRequest(() => ({ balance: 1500, transactions: [] })),
+  rechargeWallet: async (amt: number) => secureRequest(() => ({ success: true, newBalance: 1500 + amt }), { method: 'POST' }),
   getOrders: async () => secureRequest(() => []),
-  placeOrder: async (items: OrderItem[], total: number) => secureRequest(() => ({ success: true, orderId: "ORD-123" })),
+  placeOrder: async (items: OrderItem[], total: number) => secureRequest(() => ({ success: true, orderId: "ORD-123" }), { method: 'POST' }),
   addToCart: async (item: any) => ({ success: true }),
   getCartItems: async () => [],
   updateCartItem: async (id: string, q: number) => ({ success: true }),

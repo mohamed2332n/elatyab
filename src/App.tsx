@@ -28,29 +28,9 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return children;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-4xl">⏳</div>;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
-
-const AppRoutes = () => (
-  <Routes>
-    <Route path="/" element={<Index />} />
-    <Route path="/login" element={<Login />} />
-    <Route path="/signup" element={<Signup />} />
-    <Route path="/search" element={<Search />} />
-    <Route path="/categories" element={<Categories />} />
-    <Route path="/offers" element={<Offers />} />
-    <Route path="/product/:id" element={<ProductDetails />} />
-    <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-    <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-    <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
-    <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-    <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
-    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-    <Route path="*" element={<NotFound />} />
-  </Routes>
-);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -64,7 +44,22 @@ const App = () => (
                 <Sonner />
                 <BrowserRouter>
                   <FloatingCart />
-                  <AppRoutes />
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/search" element={<Search />} />
+                    <Route path="/categories" element={<Categories />} />
+                    <Route path="/offers" element={<Offers />} />
+                    <Route path="/product/:id" element={<ProductDetails />} />
+                    <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+                    <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                    <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
+                    <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+                    <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+                    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
                 </BrowserRouter>
               </TooltipProvider>
             </ThemeProvider>

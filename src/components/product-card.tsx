@@ -45,37 +45,37 @@ const ProductCard = ({ id, name, weight, originalPrice, discountedPrice, discoun
   };
 
   return (
-    <div className={cn("bg-card rounded-lg border border-border overflow-hidden shadow-sm flex flex-col h-full cursor-pointer hover:shadow-md transition-all", className)} onClick={() => navigate(`/product/${id}`)}>
-      <div className="relative">
-        <img src={image || "/placeholder.svg"} alt={name} className="w-full h-40 object-cover" />
+    <div className={cn("bg-card rounded-lg border border-border overflow-hidden shadow-sm flex flex-col h-full cursor-pointer hover:shadow-md transition-all group", className)} onClick={() => navigate(`/product/${id}`)}>
+      <div className="relative overflow-hidden">
+        <img src={image || "/placeholder.svg"} alt={name} className="w-full h-40 object-cover transition-transform group-hover:scale-110" />
         {discountPercent > 0 && (
-          <div className="absolute top-2 left-2 rtl:left-auto rtl:right-2 bg-destructive text-white text-xs font-bold px-2 py-1 rounded">
+          <div className="absolute top-2 left-2 rtl:left-auto rtl:right-2 bg-destructive text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
             {discountPercent}% {t('off')}
           </div>
         )}
-        <Button variant="ghost" size="icon" className={cn("absolute top-2 right-2 rtl:right-auto rtl:left-2 rounded-full", isFavorite ? "bg-destructive/20" : "bg-background/80")} onClick={(e) => { e.stopPropagation(); toggleWishlist(id); }}>
-          <span className="text-lg">{isFavorite ? "❤️" : "🤍"}</span>
+        <Button variant="ghost" size="icon" className={cn("absolute top-2 right-2 rtl:right-auto rtl:left-2 rounded-full", isFavorite ? "bg-destructive/20 text-destructive" : "bg-background/80")} onClick={(e) => { e.stopPropagation(); toggleWishlist(id); }}>
+          <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
         </Button>
       </div>
       <div className="p-3 flex-grow flex flex-col">
-        <h4 className="font-medium mb-1 line-clamp-2">{name}</h4>
-        <p className="text-xs text-muted-foreground mb-2">{weight}</p>
+        <h4 className="font-semibold text-sm mb-1 line-clamp-2">{name}</h4>
+        <p className="text-[10px] text-muted-foreground mb-2">{weight}</p>
         <div className="flex items-center justify-between mt-auto">
           <div>
-            <span className="font-bold text-lg">{formatPrice(discountedPrice, i18n.language)}</span>
+            <span className="font-bold text-base text-green-600">{formatPrice(discountedPrice, i18n.language)}</span>
             {originalPrice > discountedPrice && (
-              <span className="text-xs text-muted-foreground line-through block">{formatPrice(originalPrice, i18n.language)}</span>
+              <span className="text-[10px] text-muted-foreground line-through block">{formatPrice(originalPrice, i18n.language)}</span>
             )}
           </div>
           {quantity === 0 ? (
-            <Button size="sm" onClick={handleAddToCart} disabled={!isInStock}>
-              <ShoppingCart className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" /> {t('add')}
+            <Button size="sm" onClick={handleAddToCart} disabled={!isInStock} className="h-8 text-xs font-bold gap-1">
+              <ShoppingCart className="h-3 w-3" /> {t('add')}
             </Button>
           ) : (
-            <div className="flex items-center border border-input rounded-md h-8">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleAdjustQuantity(e, -1)}>-</Button>
-              <span className="px-2 text-sm">{quantity}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleAdjustQuantity(e, 1)}>+</Button>
+            <div className="flex items-center border border-primary/30 rounded-full h-8 bg-primary/5 px-1">
+              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={(e) => handleAdjustQuantity(e, -1)}>-</Button>
+              <span className="px-2 text-xs font-bold">{quantity}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={(e) => handleAdjustQuantity(e, 1)}>+</Button>
             </div>
           )}
         </div>

@@ -49,13 +49,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const userData: User = {
         id: `user_${Date.now()}`,
-        name,
-        email,
-        phone,
-        address: "",
+        name, email, phone, address: "",
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
       };
-      // In a real app, send to server
       setUser(userData);
       showSuccess("Account created successfully!");
     } catch (err: any) {

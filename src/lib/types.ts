@@ -4,15 +4,6 @@
 
 import type React from 'react';
 
-// Generic API Response type
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-// User/Auth types
 export interface User {
   id: string;
   name: string;
@@ -33,7 +24,6 @@ export interface AuthContextType {
   updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
-// Product types
 export interface Product {
   id: string;
   name: string;
@@ -68,4 +58,17 @@ export interface Order {
   total: number;
   items: number;
   deliveryTime: string;
+}
+
+export interface WalletTransaction {
+  id: number;
+  type: "credit" | "debit";
+  amount: number;
+  description: string;
+  date: string;
+}
+
+export interface WalletData {
+  balance: number;
+  transactions: WalletTransaction[];
 }
