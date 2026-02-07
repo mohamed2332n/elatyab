@@ -1,0 +1,13 @@
+---
+description: Elatyab project – React + Vite + TypeScript e‑commerce app. Follow these when editing.
+globs: 
+alwaysApply: true
+---
+
+# Elatyab project (Cursor integration)
+
+- **Stack**: React 19, TypeScript, Vite 6, React Router, Tailwind CSS, shadcn/ui, Supabase, React Query, i18next.
+- **Paths**: Pages in `src/pages/`, components in `src/components/`, shared logic in `src/lib/`, `src/utils/`, `src/context/`. Routes are defined in `src/App.tsx`.
+- **UI**: Prefer shadcn/ui and Tailwind. Use existing components in `src/components/ui/`; extend via new components rather than editing base UI files. Icons from `lucide-react`.
+- **Conventions**: Use `@/` path alias. Follow patterns in `AI_RULES.md` and `QUICK_START.md`. Constants in `src/lib/constants.ts`, validation in `src/utils/validation.ts`.
+- **Run**: `pnpm install` then `pnpm dev`. Build: `pnpm build`.
