@@ -8,34 +8,27 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env.local
-function loadEnv() {
-  const envPath = path.join(__dirname, ".env.local");
-  const env = {};
+// Load Supabase credentials from the client file
+function loadSupabaseCredentials() {
+  const clientPath = path.join(__dirname, "src/integrations/supabase/client.ts");
+  const content = fs.readFileSync(clientPath, "utf-8");
+  
+  const urlMatch = content.match(/const SUPABASE_URL = "(.*?)";/);
+  const keyMatch = content.match(/const SUPABASE_PUBLISHABLE_KEY = "(.*?)";/);
 
-  if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, "utf-8");
-    content.split("\n").forEach((line) => {
-      const [key, value] = line.split("=");
-      if (key && value) {
-        env[key.trim()] = value.trim();
-      }
-    });
+  if (!urlMatch || !keyMatch) {
+    throw new Error("Could not find SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY in src/integrations/supabase/client.ts");
   }
 
-  return env;
+  return {
+    url: urlMatch[1],
+    key: keyMatch[1]
+  };
 }
 
 async function uploadImages() {
   try {
-    const env = loadEnv();
-    const supabaseUrl = env.VITE_SUPABASE_URL;
-    const supabaseKey = env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("❌ Error: Supabase credentials not found in .env.local");
-      process.exit(1);
-    }
+    const { url: supabaseUrl, key: supabaseKey } = loadSupabaseCredentials();
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -88,7 +81,7 @@ async function uploadImages() {
       }
     }
 
-    // Update offers
+    // Update offers (assuming an 'offers' table exists with 'title_en')
     console.log("\n🎁 Updating offer images...");
     for (const offer of data.offers) {
       try {
@@ -108,7 +101,7 @@ async function uploadImages() {
     }
 
     console.log("\n✅ All images updated successfully!");
-    console.log("🔄 Refresh your browser to see the changes.");
+    console.log("🔄 Please run 'npm run rebuild' or 'npm run restart' to ensure the app fetches the new data.");
   } catch (error) {
     console.error("❌ Error:", error.message);
     process.exit(1);
