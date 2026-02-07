@@ -106,7 +106,7 @@ const Wishlist = () => {
       const discountedPrice = product.price * (1 - product.discount_percentage / 100);
       const productName = lang === "ar" ? product.name_ar : product.name_en;
       
-      // addItem expects Omit<CartItem, "quantity">, which means it needs id, name, price, image, weight
+      // addItem returns Promise<void>, so we don't destructure { error }
       await addItem({
         id: product.id,
         name: productName,
