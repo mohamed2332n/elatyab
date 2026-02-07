@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -26,33 +27,29 @@ const Signup = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name) {
-      newErrors.name = "Name is required";
+      newErrors.name = "الاسم مطلوب";
     } else if (formData.name.length < 2) {
-      newErrors.name = "Name must be at least 2 characters";
+      newErrors.name = "يجب أن يكون الاسم حرفين على الأقل";
     }
 
     if (!formData.email) {
-      newErrors.email = "Email is required";
+      newErrors.email = "البريد الإلكتروني مطلوب";
     } else if (!formData.email.includes("@")) {
-      newErrors.email = "Invalid email format";
+      newErrors.email = "صيغة البريد غير صحيحة";
     }
 
     if (!formData.phone) {
-      newErrors.phone = "Phone number is required";
-    } else if (formData.phone.replace(/\D/g, "").length < 10) {
-      newErrors.phone = "Phone number must be at least 10 digits";
+      newErrors.phone = "رقم الهاتف مطلوب";
     }
 
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = "كلمة المرور مطلوبة";
     } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = "يجب أن تكون كلمة المرور 6 أحرف على الأقل";
     }
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "كلمات المرور غير متطابقة";
     }
 
     setErrors(newErrors);
@@ -75,77 +72,77 @@ const Signup = () => {
     setIsLoading(true);
     try {
       await signup(formData.name, formData.email, formData.phone, formData.password);
-      navigate("/");
-    } catch (err) {
-      console.error("Signup error:", err);
+      // If the email confirmation is ON, we show a specific message
+      toast.info("تم إرسال رسالة تأكيد لبريدك الإلكتروني. يرجى تفعيل حسابك.");
+      navigate("/login");
+    } catch (err: any) {
+      if (err.message?.includes("rate limit")) {
+        toast.error("تم تجاوز حد إرسال الرسائل. يرجى الانتظار قليلاً أو التواصل مع الإدارة.");
+      } else {
+        toast.error(err.message || "حدث خطأ أثناء التسجيل");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fields = [
-    {
-      name: "name",
-      label: "Full Name",
-      type: "text",
-      placeholder: "John Doe",
-      icon: "👤",
-    },
-    {
-      name: "email",
-      label: "Email Address",
-      type: "email",
-      placeholder: "you@example.com",
-      icon: "📧",
-    },
-    {
-      name: "phone",
-      label: "Phone Number",
-      type: "tel",
-      placeholder: "+91 9876543210",
-      icon: "📱",
-    },
-  ];
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background animate-in-fade p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background animate-in-fade p-4" dir="rtl">
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="text-5xl emoji-bounce mb-4">🌱</div>
-          <h1 className="text-3xl font-bold">Join Us</h1>
-          <p className="text-muted-foreground mt-2">Create your account to get started</p>
+          <h1 className="text-3xl font-bold">انضم إلينا</h1>
+          <p className="text-muted-foreground mt-2">أنشئ حسابك للبدء في التسوق</p>
         </div>
 
-        {/* Signup Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name, Email, Phone Fields */}
-          {fields.map((field) => (
-            <div key={field.name}>
-              <label className="block text-sm font-medium mb-2">
-                <span>{field.icon}</span> {field.label}
-              </label>
-              <input
-                type={field.type}
-                name={field.name}
-                value={formData[field.name as keyof typeof formData]}
-                onChange={handleChange}
-                placeholder={field.placeholder}
-                className={`w-full px-4 py-2 rounded-lg border transition-all ${
-                  errors[field.name]
-                    ? "border-destructive focus:ring-destructive"
-                    : "border-input focus:ring-primary"
-                } bg-background focus:outline-none focus:ring-2`}
-              />
-              {errors[field.name] && (
-                <p className="text-destructive text-sm mt-1">{errors[field.name]}</p>
-              )}
-            </div>
-          ))}
-
-          {/* Password Field */}
           <div>
-            <label className="block text-sm font-medium mb-2">🔐 Password</label>
+            <label className="block text-sm font-medium mb-2">👤 الاسم الكامل</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="أحمد علي"
+              className={`w-full px-4 py-2 rounded-lg border transition-all ${
+                errors.name ? "border-destructive" : "border-input"
+              } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            {errors.name && <p className="text-destructive text-xs mt-1">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">📧 البريد الإلكتروني</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="example@mail.com"
+              className={`w-full px-4 py-2 rounded-lg border transition-all ${
+                errors.email ? "border-destructive" : "border-input"
+              } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">📱 رقم الهاتف</label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="010XXXXXXXX"
+              className={`w-full px-4 py-2 rounded-lg border transition-all ${
+                errors.phone ? "border-destructive" : "border-input"
+              } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
+            />
+            {errors.phone && <p className="text-destructive text-xs mt-1">{errors.phone}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">🔐 كلمة المرور</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -154,25 +151,22 @@ const Signup = () => {
                 onChange={handleChange}
                 placeholder="••••••••"
                 className={`w-full px-4 py-2 rounded-lg border transition-all ${
-                  errors.password
-                    ? "border-destructive focus:ring-destructive"
-                    : "border-input focus:ring-primary"
-                } bg-background focus:outline-none focus:ring-2`}
+                  errors.password ? "border-destructive" : "border-input"
+                } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {errors.password && <p className="text-destructive text-sm mt-1">{errors.password}</p>}
+            {errors.password && <p className="text-destructive text-xs mt-1">{errors.password}</p>}
           </div>
 
-          {/* Confirm Password Field */}
           <div>
-            <label className="block text-sm font-medium mb-2">✓ Confirm Password</label>
+            <label className="block text-sm font-medium mb-2">✓ تأكيد كلمة المرور</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}
@@ -181,71 +175,39 @@ const Signup = () => {
                 onChange={handleChange}
                 placeholder="••••••••"
                 className={`w-full px-4 py-2 rounded-lg border transition-all ${
-                  errors.confirmPassword
-                    ? "border-destructive focus:ring-destructive"
-                    : "border-input focus:ring-primary"
-                } bg-background focus:outline-none focus:ring-2`}
+                  errors.confirmPassword ? "border-destructive" : "border-input"
+                } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
               >
                 {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {errors.confirmPassword && (
-              <p className="text-destructive text-sm mt-1">{errors.confirmPassword}</p>
-            )}
+            {errors.confirmPassword && <p className="text-destructive text-xs mt-1">{errors.confirmPassword}</p>}
           </div>
 
-          {/* Terms */}
-          <div className="flex items-start gap-2">
-            <input type="checkbox" id="terms" className="mt-1" required />
-            <label htmlFor="terms" className="text-sm text-muted-foreground">
-              I agree to the <span className="text-primary hover:underline cursor-pointer">Terms and Conditions</span>
-            </label>
-          </div>
-
-          {/* Submit Button */}
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full py-6 text-base font-medium gap-2 hover:scale-105 transition-transform active:scale-95"
+            className="w-full py-6 text-base font-medium gap-2 mt-4"
           >
             {isLoading ? (
               <>
-                <span className="emoji-spin">⏳</span> Creating Account...
+                <Loader2 className="h-5 w-5 animate-spin" /> جاري إنشاء الحساب...
               </>
             ) : (
-              <>
-                <span>🎉</span> Create Account
-              </>
+              <>إنشاء حساب جديد ✨</>
             )}
           </Button>
         </form>
 
-        {/* Divider */}
-        <div className="flex items-center my-6">
-          <div className="flex-1 h-px bg-border"></div>
-          <span className="px-3 text-muted-foreground text-sm">already have an account?</span>
-          <div className="flex-1 h-px bg-border"></div>
-        </div>
-
-        {/* Login Link */}
-        <p className="text-center text-muted-foreground">
-          <Link to="/login" className="text-primary hover:underline font-medium">
-            Login Here
-          </Link>
-        </p>
-
-        {/* Back Home */}
-        <p className="text-center mt-4">
-          <Link
-            to="/"
-            className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1"
-          >
-            ← Back to Home
+        <p className="text-center mt-6 text-muted-foreground">
+          لديك حساب بالفعل؟{" "}
+          <Link to="/login" className="text-primary font-bold hover:underline">
+            تسجيل الدخول
           </Link>
         </p>
       </div>
