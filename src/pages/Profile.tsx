@@ -6,35 +6,44 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useTranslation } from "react-i18next";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
+import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Profile = () => {
   const { user, logout, updateProfile, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { lang } = useLang();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(user?.name || "");
+  const [isSaving, setIsSaving] = useState(false);
   const [showSensitive, setShowSensitive] = useState({ phone: false, address: false });
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(user?.name || "");
 
   useEffect(() => {
     if (!loading && !isAuthenticated) navigate("/login");
-    if (user) setName(user.name);
+    if (user) setEditedName(user.name);
   }, [isAuthenticated, loading, navigate, user]);
 
-  const handleUpdate = async () => {
-    await updateProfile({ name });
-    setIsEditing(false);
+  const handleUpdateName = async () => {
+    if (!editedName.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+    setIsSaving(true);
+    await updateProfile({ name: editedName });
+    setIsEditingName(false);
+    setIsSaving(false);
   };
 
   const maskValue = (val?: string) => val ? val.replace(/^.{3}/, '***') : '***';
 
   const menuItems = [
-    { icon: MapPin, label: "Addresses", path: "/profile/addresses", emoji: "📍" },
-    { icon: FileText, label: t('myOrder'), path: "/orders", emoji: "📋" },
+    { icon: MapPin, label: "Addresses", path: "/addresses", emoji: "📍" },
+    { icon: FileText, label: "My Orders", path: "/orders", emoji: "📋" },
     { icon: Heart, label: "Wishlist", path: "/wishlist", emoji: "❤️" },
     { icon: Bell, label: "Notifications", path: "/notifications", emoji: "🔔" },
     { icon: Shield, label: "Security", path: "/security", emoji: "🛡️" },
-    { icon: CreditCard, label: "Payments", path: "/wallet", emoji: "💳" },
+    { icon: CreditCard, label: "Wallet & Payments", path: "/wallet", emoji: "💳" },
   ];
 
   if (loading) return <div className="min-h-screen flex items-center justify-center animate-spin">⏳</div>;
@@ -52,20 +61,48 @@ const Profile = () => {
               <Edit className="h-4 w-4" />
             </Button>
           </div>
-          {isEditing ? (
+          {isEditingName ? (
             <div className="flex gap-2">
-              <input value={name} onChange={e => setName(e.target.value)} className="text-foreground px-2 py-1 rounded" />
-              <Button size="sm" variant="secondary" onClick={handleUpdate}>Save</Button>
+              <input 
+                value={editedName} 
+                onChange={e => setEditedName(e.target.value)} 
+                className="text-foreground px-2 py-1 rounded" 
+                disabled={isSaving}
+              />
+              <Button size="sm" variant="secondary" onClick={handleUpdateName} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
             </div>
           ) : (
             <h2 className="text-2xl font-bold flex items-center gap-2">
-              {user.name} <Edit className="h-4 w-4 cursor-pointer opacity-70" onClick={() => setIsEditing(true)} />
+              {user.name} <Edit className="h-4 w-4 cursor-pointer opacity-70" onClick={() => setIsEditingName(true)} />
             </h2>
           )}
           <p className="opacity-80 text-sm mt-1">{user.email}</p>
         </div>
 
-        <div className="p-6 space-y-6">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
+          <div className="bg-muted/30 rounded-xl border border-border p-4 text-center card-animate">
+            <p className="text-3xl font-bold text-primary mb-1">📦</p>
+            <p className="text-sm text-muted-foreground">Orders</p>
+            <p className="text-2xl font-bold">5</p>
+          </div>
+          <div className="bg-muted/30 rounded-xl border border-border p-4 text-center card-animate" style={{ animationDelay: "50ms" }}>
+            <p className="text-3xl font-bold text-primary mb-1">❤️</p>
+            <p className="text-sm text-muted-foreground">Wishlist Items</p>
+            <p className="text-2xl font-bold">12</p>
+          </div>
+          <div className="bg-muted/30 rounded-xl border border-border p-4 text-center card-animate" style={{ animationDelay: "100ms" }}>
+            <p className="text-3xl font-bold text-primary mb-1">💰</p>
+            <p className="text-sm text-muted-foreground">Wallet Balance</p>
+            <p className="text-2xl font-bold">{formatPrice(1500, lang)}</p>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        <div className="p-6 space-y-4 border-t border-border">
+          <h3 className="font-bold text-lg mb-2">Contact Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 bg-muted/30 rounded-xl border border-border flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -87,21 +124,30 @@ const Profile = () => {
               </Button>
             </div>
           </div>
+        </div>
 
-          <div className="divide-y divide-border">
-            {menuItems.map((item, i) => (
-              <div key={i} className="py-4 flex items-center justify-between cursor-pointer hover:bg-muted/20 px-2 rounded transition-colors" onClick={() => navigate(item.path)}>
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{item.emoji}</span>
-                  <span className="font-medium">{item.label}</span>
-                </div>
-                <span className="text-muted-foreground">→</span>
+        {/* Menu Items */}
+        <div className="p-6 space-y-2 border-t border-border">
+          <h3 className="font-bold text-lg mb-2">Account Settings</h3>
+          {menuItems.map((item, i) => (
+            <div 
+              key={i} 
+              className="py-3 flex items-center justify-between cursor-pointer hover:bg-muted/20 px-2 rounded transition-colors list-item"
+              style={{ animationDelay: `${i * 30}ms` }}
+              onClick={() => navigate(item.path)}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{item.emoji}</span>
+                <span className="font-medium">{item.label}</span>
               </div>
-            ))}
-          </div>
+              <span className="text-muted-foreground">→</span>
+            </div>
+          ))}
+        </div>
 
+        <div className="p-6 border-t border-border">
           <Button variant="destructive" className="w-full gap-2 py-6 text-lg" onClick={logout}>
-            <LogOut className="h-5 w-5" /> {t('logout')}
+            <LogOut className="h-5 w-5" /> Logout
           </Button>
         </div>
       </div>
