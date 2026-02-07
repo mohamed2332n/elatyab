@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { OfferBanner } from "@/components/offer-banner";
+import OfferBanner from "@/components/offer-banner";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 

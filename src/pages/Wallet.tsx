@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { WalletCard } from "@/components/wallet-card";
+import WalletCard from "@/components/wallet-card";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 

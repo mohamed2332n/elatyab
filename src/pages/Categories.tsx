@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CategoryCard } from "@/components/category-card";
+import CategoryCard from "@/components/category-card";
 import { useTheme } from "@/components/theme-provider";
 
 const Categories = () => {
