@@ -46,14 +46,12 @@ const Checkout = () => {
     
     setIsInitializingStripe(true);
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      const session = await supabase.auth.getSession();
-      
+      // Using direct fetch with full URL as per Supabase instructions
       const response = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.data.session?.access_token}`,
+          'Authorization': `Bearer ${(await (await import('@/integrations/supabase/client')).supabase.auth.getSession()).data.session?.access_token}`,
         },
         body: JSON.stringify({ 
           amount: finalTotal, 
@@ -89,9 +87,7 @@ const Checkout = () => {
     try {
       const result = await apiService.placeOrder(
         items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
-        finalTotal,
-        paymentMethod,
-        user?.address || "Maadi, Cairo"
+        finalTotal
       );
 
       if (result.success) {
@@ -100,7 +96,7 @@ const Checkout = () => {
         navigate(`/orders/${result.orderId}`);
       }
     } catch (error: any) {
-      showError("حدث خطأ أثناء تسجيل الطلب. يرجى التأكد من وجود جداول الطلبات في قاعدة البيانات.");
+      showError("حدث خطأ أثناء تسجيل الطلب. يرجى التواصل مع الدعم.");
     } finally {
       setIsPlacingOrder(false);
     }
@@ -111,9 +107,7 @@ const Checkout = () => {
     try {
       const result = await apiService.placeOrder(
         items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
-        finalTotal,
-        paymentMethod,
-        user?.address || "Maadi, Cairo"
+        finalTotal
       );
 
       if (result.success) {
@@ -122,7 +116,7 @@ const Checkout = () => {
         navigate(`/orders/${result.orderId}`);
       }
     } catch (error: any) {
-      showError("فشل في إتمام الطلب. يرجى التأكد من إعداد جداول قاعدة البيانات.");
+      showError("فشل في إتمام الطلب. يرجى المحاولة مرة أخرى.");
     } finally {
       setIsPlacingOrder(false);
     }
@@ -217,6 +211,20 @@ const Checkout = () => {
                   </p>
                 </div>
               )}
+
+              {/* Fawry Instructions */}
+              {paymentMethod === "fawry" && (
+                <div className="mt-8 p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-200 animate-in-slide-up">
+                  <h3 className="font-bold text-yellow-800 mb-2">الدفع عبر فوري:</h3>
+                  <p className="text-sm text-yellow-700 mb-4">
+                    سيظهر لك كود الدفع بعد تأكيد الطلب. يمكنك الدفع في أي منفذ فوري خلال 24 ساعة.
+                  </p>
+                  <div className="bg-yellow-100 p-3 rounded-lg flex items-center gap-3">
+                    <Hash className="h-5 w-5 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800">سيتم إنشاء رقم مرجعي فور تأكيد الطلب.</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -252,6 +260,17 @@ const Checkout = () => {
                   )}
                 </Button>
               )}
+
+              <div className="mt-8 flex flex-col items-center gap-4 border-t border-border pt-6">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  <Lock className="h-3 w-3" />
+                  دفع آمن ومحمي
+                </div>
+                <div className="flex gap-4 opacity-40 grayscale">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4" alt="Visa" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-4" alt="Mastercard" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
