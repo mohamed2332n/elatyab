@@ -31,9 +31,7 @@ export const resources = {
       shopNow: "Shop Now",
       featured: "Featured Products",
       specialOffers: "Special Offers",
-      egp: "EGP",
-      yourCartIsEmpty: "Your cart is empty", // Added missing key
-      startShopping: "Start Shopping", // Added missing key
+      egp: "EGP"
     }
   },
   ar: {
@@ -68,9 +66,7 @@ export const resources = {
       shopNow: "تسوق الآن",
       featured: "منتجات مميزة",
       specialOffers: "عروض خاصة",
-      egp: "ج.م",
-      yourCartIsEmpty: "سلتك فارغة", // Added missing key
-      startShopping: "ابدأ التسوق", // Added missing key
+      egp: "ج.م"
     }
   }
 };
