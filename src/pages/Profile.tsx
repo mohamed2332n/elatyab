@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useLang } from "@/context/lang-context";
-import { formatPrice } from "@/utils/price";
+import { useLanguage } from "@/context/language-context";
+import { formatPrice } from "@/utils/price-formatter";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Profile = () => {
   const { user, logout, updateProfile, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  const { lang } = useLang();
+  const { language: lang } = useLanguage();
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || "");
   const [isSaving, setIsSaving] = useState(false);
