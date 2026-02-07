@@ -1,211 +1,200 @@
-import { useState } from 'react';
-import { MadeWithDyad } from "@/components/made-with-dyad";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Moon, Sun, Search, ShoppingCart, Home, Wallet, FolderOpen, ClipboardList, Gift, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useProtectedMutation } from '@/hooks/use-protected-mutation';
-import { toast } from 'sonner';
-import { isRateLimited } from '@/utils/rate-limiter';
-import { validateData, itemSchema } from '@/utils/validation';
-import { z } from 'zod';
-import { ValidationError } from '@/utils/validation';
-
-// Example API service with CSRF protection
-const apiService = {
-  // Example POST request with CSRF protection
-  createItem: async (data: unknown) => {
-    // Validate data before sending
-    const validation = validateData(itemSchema, data);
-    if (!validation.success) {
-      const error = validation as ValidationError;
-      throw new Error(`Validation error: ${error.errors.join(', ')}`);
-    }
-    const response = await fetch('/api/items', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest', // CSRF protection header
-      },
-      body: JSON.stringify(validation.data),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to create item');
-    }
-    return response.json();
-  },
-
-  // Example DELETE request with CSRF protection
-  deleteItem: async (id: string) => {
-    // Validate ID format
-    const idSchema = z.string().min(1, "ID is required");
-    const validation = validateData(idSchema, id);
-    if (!validation.success) {
-      const error = validation as ValidationError;
-      throw new Error(`Validation error: ${error.errors.join(', ')}`);
-    }
-    const response = await fetch(`/api/items/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest', // CSRF protection header
-      },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to delete item');
-    }
-    return response.json();
-  }
-};
+import { useTheme } from "@/components/theme-provider";
+import { useCart } from "@/context/cart-context";
+import { useNavigate } from "react-router-dom";
+import { MadeWithDyad } from "@/components/made-with-dyad";
+import ProductCard from "@/components/product-card";
+import OfferBanner from "@/components/offer-banner";
+import CategoryCard from "@/components/category-card";
 
 const Index = () => {
-  const [items, setItems] = useState<string[]>(['Item 1', 'Item 2', 'Item 3']);
+  const { theme, toggleTheme } = useTheme();
+  const { getTotalItems } = useCart();
+  const navigate = useNavigate();
+  const cartCount = getTotalItems();
 
-  // Protected mutation for creating items
-  const createItemMutation = useProtectedMutation({
-    mutationFn: apiService.createItem,
-    onSuccess: () => {
-      toast.success('Item created successfully');
-      // In a real app, you would update the UI with the new item
+  const featuredProducts = [
+    {
+      id: "1",
+      name: "Fresh Apple",
+      weight: "500g",
+      originalPrice: 199,
+      discountedPrice: 129,
+      discountPercent: 35,
+      isInStock: true
     },
-    onError: (error: Error) => {
-      toast.error(`Error: ${error.message}`);
-    }
-  });
-
-  // Protected mutation for deleting items
-  const deleteItemMutation = useProtectedMutation({
-    mutationFn: apiService.deleteItem,
-    onSuccess: () => {
-      toast.success('Item deleted successfully');
-      // In a real app, you would update the UI to remove the item
+    {
+      id: "2",
+      name: "Organic Banana",
+      weight: "1 dozen",
+      originalPrice: 89,
+      discountedPrice: 69,
+      discountPercent: 22,
+      isInStock: true
     },
-    onError: (error: Error) => {
-      toast.error(`Error: ${error.message}`);
+    {
+      id: "3",
+      name: "Premium Mango",
+      weight: "1 kg",
+      originalPrice: 299,
+      discountedPrice: 199,
+      discountPercent: 33,
+      isInStock: true
+    },
+    {
+      id: "4",
+      name: "Fresh Spinach",
+      weight: "250g",
+      originalPrice: 49,
+      discountedPrice: 39,
+      discountPercent: 20,
+      isInStock: true
     }
-  });
+  ];
 
-  const handleCreateItem = () => {
-    // Implement rate limiting
-    if (isRateLimited('createItem', 1000)) {
-      toast.error('Too many requests. Please wait before creating another item.');
-      return;
-    }
-    createItemMutation.mutate({
-      name: `Item ${items.length + 1}`,
-      description: `Description for item ${items.length + 1}`
-    });
-  };
-
-  const handleDeleteItem = (id: string) => {
-    // Implement rate limiting
-    if (isRateLimited(`deleteItem-${id}`, 1000)) {
-      toast.error('Too many requests. Please wait before deleting again.');
-      return;
-    }
-    deleteItemMutation.mutate(id);
-  };
+  const categories = [
+    { id: 1, name: "Fruits", icon: "🍎", itemCount: 45 },
+    { id: 2, name: "Vegetables", icon: "🥬", itemCount: 38 },
+    { id: 3, name: "Snacks", icon: "🍿", itemCount: 22 },
+    { id: 4, name: "Combos", icon: "🎁", itemCount: 16 }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Secure Application</h1>
-          <p className="text-lg text-gray-600 mb-6">
-            This application implements CSRF protection for all state-changing operations
-          </p>
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <strong>Security Note:</strong> All POST, PUT, and DELETE requests include CSRF protection headers
-                </p>
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="bg-primary w-8 h-8 rounded-full"></div>
+              <h1 className="text-xl font-bold">FreshCart</h1>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <Button variant="ghost" size="icon" onClick={toggleTheme}>
+                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+              
+              <Button variant="ghost" size="icon" onClick={() => navigate("/profile")}>
+                <User className="h-5 w-5" />
+              </Button>
+              
+              <div className="relative">
+                <Button variant="ghost" size="icon" onClick={() => navigate("/cart")}>
+                  <ShoppingCart className="h-5 w-5" />
+                </Button>
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-destructive text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </div>
             </div>
           </div>
+          
+          <div className="mt-3 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <input
+              type="text"
+              placeholder="Find Products here!"
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted border border-input focus:outline-none focus:ring-2 focus:ring-primary"
+              onClick={() => navigate("/search")}
+            />
+          </div>
         </div>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Protected Actions</CardTitle>
-              <CardDescription>
-                These actions are protected against CSRF attacks and rate limited
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      {/* Main Content */}
+      <main className="flex-grow container mx-auto px-4 py-6">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold mb-2">Welcome to FreshCart</h2>
+          <p className="text-muted-foreground">Fresh fruits and vegetables delivered to your doorstep</p>
+        </div>
+        
+        {/* Hero Section */}
+        <div className="bg-gradient-to-r from-primary to-secondary rounded-xl p-6 mb-8 text-white">
+          <h3 className="text-2xl font-bold mb-2">Fresh Produce Daily</h3>
+          <p className="mb-4">Get the freshest fruits and vegetables delivered to your home</p>
+          <Button variant="secondary">Shop Now</Button>
+        </div>
+        
+        {/* Categories */}
+        <section className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">Categories</h3>
+            <Button variant="link" onClick={() => navigate("/categories")}>View All</Button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {categories.map((category) => (
+              <CategoryCard
+                key={category.id}
+                name={category.name}
+                icon={category.icon}
+                itemCount={category.itemCount}
+                onClick={() => navigate("/categories")}
+              />
+            ))}
+          </div>
+        </section>
+        
+        {/* Offers */}
+        <section className="mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">Special Offers</h3>
+            <Button variant="link" onClick={() => navigate("/offers")}>View All</Button>
+          </div>
+          <OfferBanner
+            title="Deal of the Day"
+            description="Potato-15 Carrot-29 Palak-29 Mushroom-35"
+            validTill="06-02-2026"
+            onOrderNow={() => navigate("/offers")}
+          />
+        </section>
+        
+        {/* Products */}
+        <section>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">Featured Products</h3>
+            <Button variant="link" onClick={() => navigate("/categories")}>View All</Button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="sticky bottom-0 bg-background border-t border-border">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-around py-2">
+            {[
+              { icon: Home, label: "Home", path: "/" },
+              { icon: Wallet, label: "Wallet", path: "/wallet" },
+              { icon: FolderOpen, label: "Category", path: "/categories" },
+              { icon: ClipboardList, label: "My Order", path: "/orders" },
+              { icon: Gift, label: "Offers", path: "/offers" }
+            ].map((item, index) => (
               <Button 
-                onClick={handleCreateItem} 
-                disabled={createItemMutation.isPending}
-                className="w-full"
+                key={index} 
+                variant="ghost" 
+                className="flex flex-col items-center justify-center h-16 px-2 py-1"
+                onClick={() => navigate(item.path)}
               >
-                {createItemMutation.isPending ? 'Creating...' : 'Create New Item'}
+                <item.icon className="h-5 w-5" />
+                <span className="text-xs mt-1">{item.label}</span>
               </Button>
-
-              <div className="pt-4">
-                <h3 className="font-medium text-gray-900 mb-2">Current Items</h3>
-                <ul className="space-y-2">
-                  {items.map((item, index) => (
-                    <li key={index} className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
-                      <span>{item}</span>
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        onClick={() => handleDeleteItem(index.toString())}
-                        disabled={deleteItemMutation.isPending}
-                      >
-                        Delete
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Implementation</CardTitle>
-              <CardDescription>How security measures are implemented</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-2">Custom Headers</h4>
-                  <p className="text-sm text-blue-700">
-                    All state-changing requests include the header: 
-                    <code className="block bg-white p-2 mt-1 rounded">X-Requested-With: XMLHttpRequest</code>
-                  </p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <h4 className="font-medium text-green-800 mb-2">Protected Hooks</h4>
-                  <p className="text-sm text-green-700">
-                    Using <code className="bg-white px-1 rounded">useProtectedMutation</code> hook for all mutations
-                  </p>
-                </div>
-                <div className="p-4 bg-purple-50 rounded-lg">
-                  <h4 className="font-medium text-purple-800 mb-2">Rate Limiting</h4>
-                  <p className="text-sm text-purple-700">
-                    Client-side rate limiting prevents abuse (1 request per second)
-                  </p>
-                </div>
-                <div className="p-4 bg-amber-50 rounded-lg">
-                  <h4 className="font-medium text-amber-800 mb-2">Data Validation</h4>
-                  <p className="text-sm text-amber-700">
-                    Zod validation ensures data integrity before sending requests
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
         </div>
-
-        <div className="mt-12 text-center">
-          <MadeWithDyad />
-        </div>
-      </div>
+      </nav>
+      
+      <MadeWithDyad />
     </div>
   );
 };
