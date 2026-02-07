@@ -38,16 +38,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (isAuthenticated) {
         try {
           const serverItems = await apiService.getCartItems();
-          // In a real app, we would set items from server
-          // For this example, we'll keep client-side state but validate operations
-          setItems([]);
+          setItems(serverItems);
         } catch (error) {
           console.error("Error initializing cart:", error);
         } finally {
           setLoading(false);
         }
       } else {
-        // For unauthenticated users, we still allow local cart operations
+        // For unauthenticated users, we clear items or use local storage
+        setItems([]);
         setLoading(false);
       }
     };
