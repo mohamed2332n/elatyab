@@ -6,13 +6,14 @@ import { getEnvVariable } from "@/lib/env";
 // Validate required environment variables at startup
 const validateEnvVariables = () => {
   const requiredVars = [
-    // Add any required VITE_ prefixed environment variables here
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_ANON_KEY"
   ];
   const missingVars = requiredVars.filter(
     (varName) => {
       try {
-        getEnvVariable(varName);
-        return false;
+        const val = import.meta.env[varName];
+        return !val;
       } catch {
         return true;
       }
