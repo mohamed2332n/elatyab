@@ -10,7 +10,10 @@ import ProductCard from "@/components/product-card";
 import { isRateLimited } from "@/utils/rate-limiter";
 import { productsService } from "@/services/supabase/products";
 import { showError } from "@/utils/toast";
+<<<<<<< HEAD
 import { useNavigate } from "react-router-dom";
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
 interface Product {
   id: string;
@@ -21,14 +24,21 @@ interface Product {
   price: number;
   discount_percentage: number;
   image_url: string;
+<<<<<<< HEAD
   is_in_stock: boolean;
+=======
+  in_stock: boolean;
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
   category_id: string;
 }
 
 const SearchPage = () => {
   const { theme } = useTheme();
   const { lang } = useLang();
+<<<<<<< HEAD
   const navigate = useNavigate();
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
   const [searchQuery, setSearchQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
@@ -93,11 +103,17 @@ const SearchPage = () => {
     setError(null);
     setSearchQuery(sanitizedQuery);
 
+<<<<<<< HEAD
     if (sanitizedQuery) {
       const updatedSearches = [sanitizedQuery, ...recentSearches.filter(item => item !== sanitizedQuery)].slice(0, 5);
       setRecentSearches(updatedSearches);
       localStorage.setItem("recentSearches", JSON.stringify(updatedSearches));
     }
+=======
+    const updatedSearches = [sanitizedQuery, ...recentSearches.filter(item => item !== sanitizedQuery)].slice(0, 5);
+    setRecentSearches(updatedSearches);
+    localStorage.setItem("recentSearches", JSON.stringify(updatedSearches));
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
     const productName = lang === "ar" ? "name_ar" : "name_en";
     const results = allProducts.filter(product => {
@@ -107,7 +123,11 @@ const SearchPage = () => {
         productNameStr.toLowerCase().includes(sanitizedQuery.toLowerCase()) &&
         discountedPrice >= priceRange.min &&
         discountedPrice <= priceRange.max &&
+<<<<<<< HEAD
         product.is_in_stock
+=======
+        product.in_stock
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       );
     });
     
@@ -248,7 +268,11 @@ const SearchPage = () => {
                       price: product.price,
                       discount: product.discount_percentage,
                       image: product.image_url,
+<<<<<<< HEAD
                       inStock: product.is_in_stock,
+=======
+                      inStock: product.in_stock,
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
                     }}
                     onAddClick={() => {}}
                   />

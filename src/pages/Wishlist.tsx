@@ -24,7 +24,10 @@ interface WishlistProduct {
   image_url: string;
   in_stock: boolean;
   category_id: string;
+<<<<<<< HEAD
   weight?: string; // Added weight for cart compatibility
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 }
 
 const Wishlist = () => {
@@ -104,6 +107,7 @@ const Wishlist = () => {
     try {
       setAddingToCartId(product.id);
       const discountedPrice = product.price * (1 - product.discount_percentage / 100);
+<<<<<<< HEAD
       const productName = lang === "ar" ? product.name_ar : product.name_en;
       
       // addItem expects Omit<CartItem, "quantity">, which means it needs id, name, price, image, weight
@@ -116,6 +120,20 @@ const Wishlist = () => {
       });
 
       showSuccess("Added to cart from wishlist");
+=======
+      
+      const { error } = await addItem({
+        product_id: product.id,
+        quantity: 1,
+        unit_price: discountedPrice
+      });
+
+      if (!error) {
+        showSuccess("Added to cart from wishlist");
+      } else {
+        showError("Failed to add to cart");
+      }
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
     } catch (err) {
       console.error("Error adding to cart:", err);
       showError("Failed to add to cart");
@@ -166,7 +184,10 @@ const Wishlist = () => {
               <Button 
                 onClick={handleContinueShopping}
                 size="lg"
+<<<<<<< HEAD
                 variant="outline"
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
                 className="w-full gap-2 hover:scale-105 transition-transform"
               >
                 <span>🛍️</span> 
@@ -347,4 +368,8 @@ const Wishlist = () => {
   );
 };
 
+<<<<<<< HEAD
 export default Wishlist;
+=======
+export default Wishlist;
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425

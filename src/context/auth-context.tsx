@@ -44,7 +44,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const checkAuth = async () => {
       try {
+<<<<<<< HEAD
         const { data: { user: authUser } } = await supabase.auth.getUser();
+=======
+        // Check if Supabase is properly configured
+        if (!supabase || !supabase.auth) {
+          console.warn("⚠️ Supabase not configured. Running in demo mode.");
+          setLoading(false);
+          return;
+        }
+
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) {
+          console.warn("⚠️ Auth check failed:", authError.message);
+          setLoading(false);
+          return;
+        }
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
         
         if (authUser) {
           // Get full profile from database
@@ -57,7 +74,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               email: profile.email || authUser.email || '',
               phone: profile.phone || '',
               avatar: profile.avatar_url,
+<<<<<<< HEAD
               address: profile.address || '',
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
             });
           } else {
             // Fallback to auth user info
@@ -78,7 +98,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     checkAuth();
 
+<<<<<<< HEAD
     // Listen for auth changes
+=======
+    // Listen for auth changes only if Supabase is configured
+    if (!supabase || !supabase.auth) {
+      return;
+    }
+
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const { data: profile } = await authService.getUserProfile(session.user.id);
@@ -89,7 +117,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             email: profile.email || session.user.email || '',
             phone: profile.phone || '',
             avatar: profile.avatar_url,
+<<<<<<< HEAD
             address: profile.address || '',
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
           });
         }
       } else {
@@ -127,7 +158,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           email: profile.email || data.user.email || '',
           phone: profile.phone || '',
           avatar: profile.avatar_url,
+<<<<<<< HEAD
           address: profile.address || '',
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
         });
       }
 
@@ -216,7 +250,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: updates.name,
         phone: updates.phone,
         avatar_url: updates.avatar,
+<<<<<<< HEAD
         address: updates.address,
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       });
 
       if (updateError) throw updateError;

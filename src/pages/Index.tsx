@@ -20,14 +20,20 @@ import { toast } from "sonner";
 import { productsService } from "@/services/supabase/products";
 import { categoriesService } from "@/services/supabase/categories";
 import { offersService } from "@/services/supabase/offers";
+<<<<<<< HEAD
 import { useLang } from "@/context/lang-context";
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
 interface Category {
   id: string;
   name_en: string;
   name_ar: string;
   icon: string;
+<<<<<<< HEAD
   item_count: number;
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 }
 
 interface Product {
@@ -35,19 +41,31 @@ interface Product {
   name_en: string;
   name_ar: string;
   price: number;
+<<<<<<< HEAD
   discount_percentage: number;
   image_url: string;
   is_in_stock: boolean;
   weight: string;
+=======
+  old_price: number | null;
+  discount_percent: number;
+  weight: string;
+  is_in_stock: boolean;
+  images?: string[];
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 }
 
 interface Offer {
   id: string;
   title_en: string;
   title_ar: string;
+<<<<<<< HEAD
   description_en: string;
   description_ar: string;
   valid_till: string;
+=======
+  image_url: string;
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 }
 
 const Index = () => {
@@ -65,7 +83,11 @@ const Index = () => {
 
   useEffect(() => {
     loadPageData();
+<<<<<<< HEAD
   }, [lang]);
+=======
+  }, []);
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
   const loadPageData = async () => {
     try {
@@ -77,6 +99,7 @@ const Index = () => {
       ]);
 
       if (!categoriesRes.error && categoriesRes.data) {
+<<<<<<< HEAD
         // Map categories to include item_count (mocked for now as DB doesn't return it directly)
         const mappedCategories: Category[] = categoriesRes.data.map(c => ({
           ...c,
@@ -99,6 +122,13 @@ const Index = () => {
           weight: p.weight || '1 kg',
         }));
         setFeaturedProducts(mappedProducts);
+=======
+        setCategories(categoriesRes.data);
+      }
+
+      if (!productsRes.error && productsRes.data) {
+        setFeaturedProducts(productsRes.data);
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       }
 
       if (!offersRes.error && offersRes.data) {

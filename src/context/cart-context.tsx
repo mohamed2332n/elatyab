@@ -55,7 +55,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
           name: item.product?.name_en || '',
           price: item.product?.price || 0,
           quantity: item.quantity,
+<<<<<<< HEAD
           image: item.product?.image_url,
+=======
+          image: item.product?.images?.[0],
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
           weight: item.product?.weight,
         }));
         setItems(transformedItems);
@@ -90,11 +94,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     try {
+<<<<<<< HEAD
+=======
+      // Find the cart item ID
+      const cartItem = items.find(i => i.id === id);
+      if (!cartItem) return;
+
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       // Get the cart item's database ID
       const { data: cartItems, error: fetchError } = await cartService.getCart(user.id);
       if (fetchError || !cartItems) throw fetchError;
 
+<<<<<<< HEAD
       // Find the cart item's database ID (id in CartItem is product_id)
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       const dbId = cartItems.find((ci: any) => ci.product_id === id)?.id;
       if (!dbId) return;
 
@@ -122,7 +136,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const { data: cartItems, error: fetchError } = await cartService.getCart(user.id);
       if (fetchError || !cartItems) throw fetchError;
 
+<<<<<<< HEAD
       // Find the cart item's database ID (id in CartItem is product_id)
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       const dbId = cartItems.find((ci: any) => ci.product_id === id)?.id;
       if (!dbId) return;
 

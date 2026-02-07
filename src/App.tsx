@@ -134,6 +134,7 @@ const App = () => (
     <LangProvider>
       <AuthProvider>
         <CartProvider>
+<<<<<<< HEAD
           <WishlistProvider>
             <ThemeProvider>
               <TooltipProvider>
@@ -146,6 +147,18 @@ const App = () => (
               </TooltipProvider>
             </ThemeProvider>
           </WishlistProvider>
+=======
+          <ThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <FloatingCart />
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </ThemeProvider>
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
         </CartProvider>
       </AuthProvider>
     </LangProvider>

@@ -28,7 +28,10 @@ interface Address {
 const Checkout = () => {
   const { items, getTotalPrice, clearCart } = useCart();
   const { user } = useAuth();
+<<<<<<< HEAD
   const { t } = useTranslation();
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
   const { lang } = useLang();
   const navigate = useNavigate();
 
@@ -185,9 +188,12 @@ const Checkout = () => {
         product_id: item.id,
         quantity: item.quantity,
         unit_price: item.price,
+<<<<<<< HEAD
         name: item.name,
         image: item.image,
         weight: item.weight,
+=======
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       }));
 
       // Get selected address
@@ -195,6 +201,7 @@ const Checkout = () => {
       const deliveryAddress = selectedAddress
         ? `${selectedAddress.address}, ${selectedAddress.city} ${selectedAddress.postalCode}`
         : "";
+<<<<<<< HEAD
       
       const deliveryPhone = selectedAddress?.phone || user.phone;
 
@@ -220,6 +227,28 @@ const Checkout = () => {
           );
         }
 
+=======
+
+      // Create order
+      const { data: order, error: orderError } = await ordersService.createOrder(
+        user.id,
+        orderItems,
+        finalTotal,
+        deliveryAddress,
+        paymentMethod === "wallet"
+      );
+
+      if (!orderError && order) {
+        // Debit wallet if payment method is wallet
+        if (paymentMethod === "wallet") {
+          await walletService.debitWallet(
+            user.id,
+            finalTotal,
+            `Order ${order.order_number}`
+          );
+        }
+
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
         clearCart();
         showSuccess("🎉 Order placed successfully!");
         navigate(`/orders/${order.id}`);
@@ -278,7 +307,11 @@ const Checkout = () => {
               </h2>
               <div className="space-y-3">
                 {[
+<<<<<<< HEAD
                   { id: "wallet", name: "Digital Wallet", description: `Balance: ${formatPrice(1500, lang)}`, emoji: "💰" },
+=======
+                  { id: "wallet", name: "Digital Wallet", description: `${formatPrice(1500, lang)} available`, emoji: "💰" },
+>>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
                   { id: "upi", name: "UPI", description: "Google Pay, PhonePe, etc.", emoji: "📱" },
                   { id: "card", name: "Debit/Credit Card", description: "Visa, Mastercard, etc.", emoji: "💳" },
                   { id: "cod", name: "Cash on Delivery", description: "Pay when you receive", emoji: "🚚" },
