@@ -76,10 +76,13 @@ const Signup = () => {
       toast.info("تم إرسال رسالة تأكيد لبريدك الإلكتروني. يرجى تفعيل حسابك.");
       navigate("/login");
     } catch (err: any) {
-      if (err.message?.includes("rate limit")) {
-        toast.error("تم تجاوز حد إرسال الرسائل. يرجى الانتظار قليلاً أو التواصل مع الإدارة.");
+      console.error("Signup error details:", err);
+      
+      // Handle Rate Limit Error specifically
+      if (err.message?.includes("rate limit") || err.status === 429) {
+        toast.error("عذراً، تم تجاوز حد إرسال الرسائل. يرجى استخدام بريد إلكتروني آخر أو المحاولة بعد ساعة.");
       } else {
-        toast.error(err.message || "حدث خطأ أثناء التسجيل");
+        toast.error(err.message || "حدث خطأ أثناء التسجيل. يرجى المحاولة لاحقاً.");
       }
     } finally {
       setIsLoading(false);
