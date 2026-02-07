@@ -4,13 +4,17 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { apiService } from "@/services/api";
+import { toast } from "sonner";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [errorType, setErrorType] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const { login } = useAuth();
@@ -18,148 +22,122 @@ const Login = () => {
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
-
-    if (!email) {
-      newErrors.email = "Email is required";
-    } else if (!email.includes("@")) {
-      newErrors.email = "Invalid email format";
-    }
-
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
+    if (!email) newErrors.email = "البريد الإلكتروني مطلوب";
+    if (!password) newErrors.password = "كلمة المرور مطلوبة";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setErrorType(null);
     try {
       await login(email, password);
       navigate("/");
-    } catch (err) {
-      console.error("Login error:", err);
+    } catch (err: any) {
+      console.error("Login error details:", err);
+      if (err.message?.includes("Email not confirmed")) {
+        setErrorType("unconfirmed");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleResendEmail = async () => {
+    setIsResending(true);
+    try {
+      await apiService.resendConfirmationEmail(email);
+      toast.success("تم إرسال رابط تأكيد جديد لبريدك الإلكتروني.");
+    } catch (err: any) {
+      if (err.message?.includes("rate limit") || err.status === 429) {
+        toast.error("تم تجاوز حد الإرسال. يرجى المحاولة لاحقاً.");
+      } else {
+        toast.error("فشل إرسال الرابط. يرجى المحاولة لاحقاً.");
+      }
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background animate-in-fade p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background animate-in-fade p-4" dir="rtl">
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="text-5xl emoji-bounce mb-4">🛒</div>
-          <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="text-muted-foreground mt-2">Login to your account</p>
+          <h1 className="text-3xl font-bold">مرحباً بعودتك</h1>
+          <p className="text-muted-foreground mt-2">قم بتسجيل الدخول لمتابعة التسوق</p>
         </div>
 
-        {/* Login Form */}
+        {errorType === "unconfirmed" && (
+          <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl animate-in-slide-down">
+            <div className="flex gap-3">
+              <AlertCircle className="h-5 w-5 text-orange-600 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-orange-800">البريد الإلكتروني لم يتم تأكيده</p>
+                <p className="text-xs text-orange-700 mt-1">يرجى الضغط على الرابط المرسل لبريدك الإلكتروني.</p>
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-orange-800 font-bold underline mt-2 text-xs"
+                  onClick={handleResendEmail}
+                  disabled={isResending}
+                >
+                  {isResending ? "جاري الإرسال..." : "إعادة إرسال رابط التأكيد"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email Field */}
           <div>
-            <label className="block text-sm font-medium mb-2">Email Address</label>
+            <label className="block text-sm font-medium mb-2">📧 البريد الإلكتروني</label>
             <input
               type="email"
               value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (errors.email) setErrors({ ...errors, email: undefined });
-              }}
-              placeholder="you@example.com"
-              className={`w-full px-4 py-2 rounded-lg border transition-all ${
-                errors.email
-                  ? "border-destructive focus:ring-destructive"
-                  : "border-input focus:ring-primary"
-              } bg-background focus:outline-none focus:ring-2`}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@mail.com"
+              className="w-full px-4 py-2 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            {errors.email && <p className="text-destructive text-sm mt-1">{errors.email}</p>}
+            {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
           </div>
 
-          {/* Password Field */}
           <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label className="block text-sm font-medium mb-2">🔐 كلمة المرور</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password) setErrors({ ...errors, password: undefined });
-                }}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className={`w-full px-4 py-2 rounded-lg border transition-all ${
-                  errors.password
-                    ? "border-destructive focus:ring-destructive"
-                    : "border-input focus:ring-primary"
-                } bg-background focus:outline-none focus:ring-2`}
+                className="w-full px-4 py-2 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {errors.password && <p className="text-destructive text-sm mt-1">{errors.password}</p>}
+            {errors.password && <p className="text-destructive text-xs mt-1">{errors.password}</p>}
           </div>
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-6 text-base font-medium gap-2 hover:scale-105 transition-transform active:scale-95"
-          >
-            {isLoading ? (
-              <>
-                <span className="emoji-spin">⏳</span> Logging in...
-              </>
-            ) : (
-              <>
-                <span>🚀</span> Login
-              </>
-            )}
+          <Button type="submit" disabled={isLoading} className="w-full py-6 text-base font-bold gap-2">
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "دخول 🚀"}
           </Button>
         </form>
 
-        {/* Divider */}
-        <div className="flex items-center my-6">
-          <div className="flex-1 h-px bg-border"></div>
-          <span className="px-3 text-muted-foreground text-sm">or</span>
-          <div className="flex-1 h-px bg-border"></div>
-        </div>
-
-        {/* Demo Credentials */}
-        <div className="bg-muted/50 rounded-lg p-4 mb-6">
-          <p className="text-sm font-medium mb-2">📝 Demo Credentials:</p>
-          <p className="text-xs text-muted-foreground">Email: demo@example.com</p>
-          <p className="text-xs text-muted-foreground">Password: demo123</p>
-        </div>
-
-        {/* Sign Up Link */}
-        <p className="text-center text-muted-foreground">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-primary hover:underline font-medium">
-            Sign Up
-          </Link>
+        <p className="text-center mt-6 text-muted-foreground">
+          ليس لديك حساب؟{" "}
+          <Link to="/signup" className="text-primary font-bold hover:underline">انضم إلينا ✨</Link>
         </p>
 
-        {/* Back Home */}
         <p className="text-center mt-4">
-          <Link
-            to="/"
-            className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1"
-          >
-            ← Back to Home
-          </Link>
+          <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">← العودة للرئيسية</Link>
         </p>
       </div>
     </div>
