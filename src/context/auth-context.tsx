@@ -57,8 +57,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userData = await apiService.getMe();
         setUser(userData);
         showSuccess(`Welcome back!`);
-      } else {
-        throw new Error("Invalid credentials");
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed";
@@ -75,17 +73,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
 
     try {
-      // In a real app, this would be a server call
-      const userData: User = {
-        id: `user_${Date.now()}`,
-        name,
-        email,
-        phone,
-        address: "",
-      };
-      
-      setUser(userData);
-      showSuccess("Account created successfully! 🎉");
+      await apiService.signup(name, email, phone, password);
+      showSuccess("Account created successfully! 🎉 Please log in.");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Signup failed";
       setError(message);

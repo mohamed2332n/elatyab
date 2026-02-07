@@ -41,7 +41,22 @@ export interface Order {
 export const apiService = {
   login: async (email: string, password: string): Promise<boolean> => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
     return !error;
+  },
+
+  signup: async (name: string, email: string, phone: string, password: string): Promise<void> => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+          phone: phone,
+        },
+      },
+    });
+    if (error) throw error;
   },
 
   logout: async (): Promise<void> => {
@@ -51,12 +66,20 @@ export const apiService = {
   getMe: async (): Promise<User | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
+    
+    // Fetch additional data from profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
     return {
       id: user.id,
-      name: user.user_metadata.full_name || user.email?.split('@')[0],
+      name: profile?.full_name || user.user_metadata.full_name || user.email?.split('@')[0],
       email: user.email || "",
-      phone: user.phone || "",
-      address: user.user_metadata.address || "",
+      phone: profile?.phone || user.user_metadata.phone || "",
+      address: profile?.address || "",
     };
   },
 
@@ -68,7 +91,7 @@ export const apiService = {
       id: p.id,
       name: p.name_en,
       description: p.description_en || "",
-      weight: "1 kg", // Default for now
+      weight: "1 kg",
       originalPrice: p.price,
       discountedPrice: p.price * (1 - (p.discount_percentage || 0) / 100),
       discountPercent: p.discount_percentage || 0,
@@ -109,28 +132,19 @@ export const apiService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
-    console.log("Attempting to place order for user:", user.id);
-
-    // 1. Create Order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: user.id,
         total_amount: total,
         payment_method: 'card',
-        delivery_address: user.user_metadata.address || "Maadi, Cairo"
+        delivery_address: "Maadi, Cairo"
       })
       .select()
       .single();
 
-    if (orderError) {
-      console.error("Error creating order:", orderError);
-      throw orderError;
-    }
+    if (orderError) throw orderError;
 
-    console.log("Order created successfully:", order.id);
-
-    // 2. Create Order Items
     const orderItems = items.map(item => ({
       order_id: order.id,
       product_id: item.id,
@@ -140,13 +154,7 @@ export const apiService = {
     }));
 
     const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-    
-    if (itemsError) {
-      console.error("Error creating order items:", itemsError);
-      // Optional: Delete the order if items fail (Transaction-like behavior)
-      await supabase.from('orders').delete().eq('id', order.id);
-      throw itemsError;
-    }
+    if (itemsError) throw itemsError;
 
     return { success: true, orderId: order.id };
   },
