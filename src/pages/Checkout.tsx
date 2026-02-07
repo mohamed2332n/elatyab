@@ -4,14 +4,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/cart-context";
-import { useTheme } from "@/components/theme-provider";
 import { apiService } from "@/services/api";
 import { showError, showSuccess } from "@/utils/toast";
 import { useAuth } from "@/context/auth-context";
 
 const Checkout = () => {
   const { items, getTotalPrice, clearCart } = useCart();
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -34,16 +32,17 @@ const Checkout = () => {
     if (items.length === 0) return;
     setIsPlacingOrder(true);
     try {
-      // Validate and place order with server
+      // SECURE: Send only product IDs and quantities. 
+      // Server will calculate the actual total based on its own price records.
       const result = await apiService.placeOrder(
         items.map(item => ({
           id: item.id,
           name: item.name,
           price: item.price,
           quantity: item.quantity
-        })),
-        finalTotal
+        }))
       );
+      
       if (result.success) {
         clearCart();
         showSuccess("Order placed successfully!");
@@ -51,8 +50,8 @@ const Checkout = () => {
       } else {
         showError("Failed to place order");
       }
-    } catch (error) {
-      showError("Failed to place order");
+    } catch (error: any) {
+      showError(error.message || "Failed to place order");
       console.error("Error placing order:", error);
     } finally {
       setIsPlacingOrder(false);
@@ -72,43 +71,13 @@ const Checkout = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <div className="container mx-auto px-4 py-8 flex-grow flex flex-col items-center justify-center">
-          <div className="text-center max-w-md">
-            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground mb-6">You must be logged in to checkout</p>
-            <Button onClick={() => navigate("/")}>Go Home</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <div className="container mx-auto px-4 py-8 flex-grow flex flex-col items-center justify-center">
-          <div className="text-center max-w-md">
-            <div className="bg-muted w-24 h-24 rounded-full mx-auto flex items-center justify-center mb-6">
-              <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
-            <p className="text-muted-foreground mb-6">Add items to your cart before checking out</p>
-            <Button onClick={() => navigate("/")}>Start Shopping</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <div className="container mx-auto px-4 py-6 flex-grow">
         <h1 className="text-2xl font-bold mb-6">Checkout</h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Order Summary */}
           <div className="lg:col-span-2">
             <div className="bg-card rounded-lg border border-border p-6 mb-6">
               <h2 className="text-xl font-bold mb-4">Delivery Address</h2>
@@ -129,7 +98,7 @@ const Checkout = () => {
               <h2 className="text-xl font-bold mb-4">Payment Method</h2>
               <div className="space-y-3">
                 {[
-                  { id: "wallet", name: "Wallet", description: "₹1,500 available" },
+                  { id: "wallet", name: "Wallet", description: "Secured payment via credits" },
                   { id: "upi", name: "UPI", description: "Google Pay, PhonePe, etc." },
                   { id: "card", name: "Credit/Debit Card", description: "Visa, Mastercard, etc." },
                   { id: "cod", name: "Cash on Delivery", description: "" }
@@ -157,7 +126,6 @@ const Checkout = () => {
               </div>
             </div>
           </div>
-          {/* Order Summary */}
           <div>
             <div className="bg-card rounded-lg border border-border p-6 sticky top-6">
               <h2 className="text-xl font-bold mb-4">Order Summary</h2>
@@ -181,7 +149,7 @@ const Checkout = () => {
                     <span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg pt-2">
-                    <span>Total</span>
+                    <span>Estimated Total</span>
                     <span>₹{finalTotal.toFixed(2)}</span>
                   </div>
                 </div>
@@ -196,7 +164,7 @@ const Checkout = () => {
               </Button>
               <div className="mt-4 text-center">
                 <p className="text-sm text-muted-foreground">
-                  By placing your order, you agree to our Terms and Conditions
+                  Final price will be verified by the server.
                 </p>
               </div>
             </div>

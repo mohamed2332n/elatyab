@@ -1,3 +1,5 @@
+"use client";
+
 // Mock API service to simulate server-side operations
 // In a real application, this would make actual HTTP requests to a backend
 
@@ -17,6 +19,14 @@ export interface Product {
   origin: string;
   harvestDate: string;
   freshness: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
 }
 
 export interface CartItem {
@@ -57,7 +67,7 @@ export interface Order {
   deliveryTime: string;
 }
 
-// Mock data
+// Mock data (Authority)
 const mockProducts: Product[] = [
   {
     id: "1",
@@ -129,6 +139,14 @@ const mockProducts: Product[] = [
   }
 ];
 
+const mockUserData: User = {
+  id: "1",
+  name: "John Doe",
+  email: "user@example.com",
+  phone: "+91 9876543210",
+  address: "123 Main Street, Apartment 4B, New Delhi, 110001"
+};
+
 const mockWalletData: WalletData = {
   balance: 1500,
   transactions: [
@@ -144,41 +162,48 @@ const mockOrders: Order[] = [
   { id: "ORD-003", date: "2023-05-05", status: "Confirmed", total: 780, items: 8, deliveryTime: "07:00 PM" }
 ];
 
+// Mock session check
+const isAuthenticated = () => {
+  return !!localStorage.getItem("session_token");
+};
+
 // Mock API functions
 export const apiService = {
+  // Get current user profile (Secure: Fetches based on session token)
+  getMe: async (): Promise<User | null> => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    if (!isAuthenticated()) return null;
+    return mockUserData;
+  },
+
   // Get product by ID (server-side validated)
   getProduct: async (id: string): Promise<Product | null> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
     const product = mockProducts.find(p => p.id === id);
     return product || null;
   },
   
   // Get all products (server-side validated)
   getProducts: async (): Promise<Product[]> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 300));
     return mockProducts;
   },
   
   // Get wallet data (server-side validated)
-  getWalletData: async (): Promise<WalletData> => {
-    // Simulate network delay
+  getWalletData: async (): Promise<WalletData | null> => {
     await new Promise(resolve => setTimeout(resolve, 300));
+    if (!isAuthenticated()) return null;
     return mockWalletData;
   },
   
   // Recharge wallet (server-side validated)
   rechargeWallet: async (amount: number): Promise<{ success: boolean; newBalance: number }> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
+    if (!isAuthenticated()) return { success: false, newBalance: 0 };
     
-    // In a real app, this would validate the payment and update server-side
     const newBalance = mockWalletData.balance + amount;
     mockWalletData.balance = newBalance;
     
-    // Add transaction
     const newTransaction: WalletTransaction = {
       id: mockWalletData.transactions.length + 1,
       type: "credit",
@@ -188,84 +213,90 @@ export const apiService = {
     };
     
     mockWalletData.transactions.unshift(newTransaction);
-    
     return { success: true, newBalance };
   },
   
   // Get cart items (server-side validated)
   getCartItems: async (): Promise<CartItem[]> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real app, this would fetch from server-side session or database
-    // For this example, we'll return an empty array to force client to manage cart
-    // but validate during checkout
     return [];
   },
   
   // Add item to cart (server-side validated)
   addToCart: async (item: Omit<CartItem, "quantity">): Promise<{ success: boolean }> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real app, this would validate the item exists and is in stock
-    // then add to server-side cart
     return { success: true };
   },
   
   // Update cart item quantity (server-side validated)
   updateCartItem: async (id: string, quantity: number): Promise<{ success: boolean }> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real app, this would validate the item exists, is in stock,
-    // and the quantity is valid
     return { success: true };
   },
   
   // Remove item from cart (server-side validated)
   removeFromCart: async (id: string): Promise<{ success: boolean }> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real app, this would remove from server-side cart
     return { success: true };
   },
   
   // Get orders (server-side validated)
   getOrders: async (): Promise<Order[]> => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 300));
+    if (!isAuthenticated()) return [];
     return mockOrders;
   },
   
-  // Place order (server-side validated)
-  placeOrder: async (items: OrderItem[], total: number): Promise<{ success: boolean; orderId: string }> => {
-    // Simulate network delay
+  // Place order (Secure: Total calculation happens here, not trusting client)
+  placeOrder: async (items: OrderItem[]): Promise<{ success: boolean; orderId: string }> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!isAuthenticated()) return { success: false, orderId: "" };
     
-    // In a real app, this would:
-    // 1. Validate all items exist and are in stock
-    // 2. Validate prices match current server values
-    // 3. Check user authentication
-    // 4. Process payment
-    // 5. Create order record
-    // 6. Update inventory
-    
+    // SERVER-SIDE CALCULATION: Recalculate total using official prices
+    let calculatedTotal = 0;
+    let itemCount = 0;
+
+    for (const item of items) {
+      const dbProduct = mockProducts.find(p => p.id === item.id);
+      if (dbProduct && dbProduct.isInStock) {
+        calculatedTotal += dbProduct.discountedPrice * item.quantity;
+        itemCount += item.quantity;
+      } else if (!dbProduct) {
+        throw new Error(`Invalid product ID: ${item.id}`);
+      }
+    }
+
+    // Apply delivery fee logic on server
+    const deliveryFee = calculatedTotal >= 500 ? 0 : 30;
+    const finalTotal = calculatedTotal + deliveryFee;
+
+    // Check wallet balance on server
+    if (mockWalletData.balance < finalTotal) {
+      throw new Error("Insufficient wallet balance");
+    }
+
+    // Deduct from wallet
+    mockWalletData.balance -= finalTotal;
+    mockWalletData.transactions.unshift({
+      id: mockWalletData.transactions.length + 1,
+      type: "debit",
+      amount: finalTotal,
+      description: "Order payment",
+      date: new Date().toISOString().split('T')[0]
+    });
+
     const orderId = `ORD-${String(mockOrders.length + 1).padStart(3, '0')}`;
     
-    // Add new order
     const newOrder: Order = {
       id: orderId,
       date: new Date().toISOString().split('T')[0],
       status: "Confirmed",
-      total,
-      items: items.reduce((sum, item) => sum + item.quantity, 0),
+      total: finalTotal,
+      items: itemCount,
       deliveryTime: "06:00 PM"
     };
     
     mockOrders.unshift(newOrder);
-    
     return { success: true, orderId };
   }
 };

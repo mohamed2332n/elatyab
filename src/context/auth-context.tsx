@@ -1,14 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-}
+import { apiService, User } from "@/services/api";
 
 interface AuthContextType {
   user: User | null;
@@ -20,50 +13,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock authentication function - in a real app, this would call your backend
-const mockAuthenticate = async (email: string, password: string): Promise<User | null> => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Mock validation - in a real app, this would be done server-side
-  if (email === "user@example.com" && password === "password") {
-    return {
-      id: "1",
-      name: "John Doe",
-      email: "user@example.com",
-      phone: "+91 9876543210",
-      address: "123 Main Street, Apartment 4B, New Delhi, 110001"
-    };
-  }
-  
-  return null;
-};
-
-// Mock logout function - in a real app, this would invalidate the session on the server
-const mockLogout = async (): Promise<boolean> => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return true;
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check if user is authenticated on app load
   useEffect(() => {
-    // In a real app, this would validate the session with the server
     const checkAuth = async () => {
       try {
-        // Check for existing session (in a real app, this would validate a token/cookie with the server)
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        // SECURE: Check for an opaque token, NOT the full PII object
+        const token = localStorage.getItem("session_token");
+        if (token) {
+          // SECURE: Validate session with server and fetch fresh profile data
+          const userData = await apiService.getMe();
+          if (userData) {
+            setUser(userData);
+          } else {
+            // Invalid token
+            localStorage.removeItem("session_token");
+          }
         }
       } catch (error) {
         console.error("Error checking authentication:", error);
-        // Clear any invalid session data
-        localStorage.removeItem("user");
+        localStorage.removeItem("session_token");
       } finally {
         setLoading(false);
       }
@@ -74,10 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const authenticatedUser = await mockAuthenticate(email, password);
-      if (authenticatedUser) {
-        setUser(authenticatedUser);
-        localStorage.setItem("user", JSON.stringify(authenticatedUser));
+      // Simulate authentication request
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (email === "user@example.com" && password === "password") {
+        // SECURE: Store only an opaque session token
+        localStorage.setItem("session_token", "mock_secure_jwt_token_12345");
+        
+        // Fetch fresh profile data to keep in memory
+        const userData = await apiService.getMe();
+        setUser(userData);
         return true;
       }
       return false;
@@ -87,17 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = async () => {
-    try {
-      await mockLogout();
-      setUser(null);
-      localStorage.removeItem("user");
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Still clear local state even if server call fails
-      setUser(null);
-      localStorage.removeItem("user");
-    }
+  const logout = () => {
+    localStorage.removeItem("session_token");
+    setUser(null);
   };
 
   return (
