@@ -27,6 +27,7 @@ const Checkout = () => {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("wallet");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isInitializingStripe, setIsInitializingStripe] = useState(false);
   
   const totalPrice = getTotalPrice();
   const deliveryFee = totalPrice >= 500 ? 0 : 30;
@@ -40,7 +41,9 @@ const Checkout = () => {
   const handleInitStripe = async () => {
     if (paymentMethod !== "card" || clientSecret) return;
     
+    setIsInitializingStripe(true);
     try {
+      // Calling the edge function to get the payment intent client secret
       const { data, error } = await supabase.functions.invoke('stripe-payment', {
         body: { 
           amount: finalTotal, 
@@ -49,11 +52,17 @@ const Checkout = () => {
         },
       });
 
-      if (error || !data.clientSecret) throw new Error(error?.message || "Failed to initialize Stripe");
+      if (error || !data.clientSecret) {
+        console.error("Stripe Init Error:", error);
+        throw new Error(error?.message || "Could not connect to payment server. Did you set the STRIPE_SECRET_KEY in Supabase?");
+      }
+      
       setClientSecret(data.clientSecret);
     } catch (err: any) {
-      showError("Stripe initialization failed. Please try another method.");
-      setPaymentMethod("wallet");
+      showError(err.message);
+      setPaymentMethod("wallet"); // Fallback to wallet if Stripe fails
+    } finally {
+      setIsInitializingStripe(false);
     }
   };
 
@@ -73,17 +82,17 @@ const Checkout = () => {
 
       if (result.success) {
         clearCart();
-        showSuccess("Order placed successfully! 🎉");
+        showSuccess("Payment Successful & Order Placed! 🎉");
         navigate(`/orders/${result.orderId}`);
       }
     } catch (error: any) {
-      showError(error.message || "Order tracking failed, but payment was successful. Please contact support.");
+      showError("Payment was successful but we couldn't create the order record. Please contact support.");
     } finally {
       setIsPlacingOrder(false);
     }
   };
 
-  const handleNonStripeOrder = async () => {
+  const handleStandardOrder = async () => {
     setIsPlacingOrder(true);
     try {
       const result = await apiService.placeOrder(
@@ -97,7 +106,7 @@ const Checkout = () => {
         navigate(`/orders/${result.orderId}`);
       }
     } catch (error: any) {
-      showError(error.message || "Failed to place order");
+      showError("Failed to place order. Please try again.");
     } finally {
       setIsPlacingOrder(false);
     }
@@ -107,32 +116,30 @@ const Checkout = () => {
     <div className="min-h-screen flex flex-col bg-background animate-in-fade pb-20">
       <div className="container mx-auto px-4 py-6 flex-grow">
         <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/cart")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/cart")} className="rounded-full">
             <ArrowLeft className="h-6 w-6" />
           </Button>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <span className="emoji-bounce">🎯</span> {t('checkout')}
-          </h1>
+          <h1 className="text-3xl font-bold">{t('checkout')}</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {/* Address */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Delivery Details */}
             <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-primary" />
                 <span>Delivery Address</span>
               </h2>
-              <div className="p-4 rounded-xl border-2 border-primary bg-primary/5">
+              <div className="p-5 rounded-xl border-2 border-primary/20 bg-primary/5">
                 <p className="font-bold text-lg">{user?.name}</p>
-                <p className="text-muted-foreground">{user?.address || "123 Nile Street, Maadi, Cairo"}</p>
-                <p className="text-sm font-medium mt-2">📱 {user?.phone}</p>
+                <p className="text-muted-foreground">{user?.address || "Maadi, Cairo, Egypt"}</p>
+                <p className="text-sm font-medium mt-2">📞 {user?.phone}</p>
               </div>
             </div>
 
-            {/* Payment Method Selection */}
+            {/* Payment Selection */}
             <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
                 <span>Payment Method</span>
               </h2>
@@ -140,13 +147,12 @@ const Checkout = () => {
                 {[
                   { id: "wallet", label: "Wallet Balance", icon: "💰" },
                   { id: "card", label: "Credit Card", icon: "💳" },
-                  { id: "upi", label: "UPI Transfer", icon: "📱" },
                   { id: "cod", label: "Cash on Delivery", icon: "🚚" }
                 ].map((method) => (
                   <div
                     key={method.id}
                     className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      paymentMethod === method.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"
+                      paymentMethod === method.id ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border hover:bg-muted"
                     }`}
                     onClick={() => setPaymentMethod(method.id)}
                   >
@@ -158,9 +164,9 @@ const Checkout = () => {
                 ))}
               </div>
 
-              {/* Stripe Payment UI */}
+              {/* Stripe Payment Section */}
               {paymentMethod === "card" && (
-                <div className="mt-8 p-6 bg-muted/30 rounded-2xl border border-dashed border-primary/50 animate-in-slide-up">
+                <div className="mt-8 p-6 bg-muted/20 rounded-2xl border-2 border-dashed border-primary/30 animate-in-slide-up">
                   {clientSecret ? (
                     <Elements stripe={stripePromise} options={{ clientSecret }}>
                       <StripePaymentForm 
@@ -170,9 +176,9 @@ const Checkout = () => {
                       />
                     </Elements>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-10 gap-4">
+                    <div className="flex flex-col items-center justify-center py-12 gap-4">
                       <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                      <p className="font-medium">Initializing secure checkout...</p>
+                      <p className="text-muted-foreground animate-pulse">Setting up secure payment gateway...</p>
                     </div>
                   )}
                 </div>
@@ -190,7 +196,7 @@ const Checkout = () => {
                   <span className="font-medium">{formatPrice(totalPrice, i18n.language)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Delivery Fee</span>
+                  <span>Delivery</span>
                   <span className="font-medium text-green-600">{deliveryFee === 0 ? "FREE" : formatPrice(deliveryFee, i18n.language)}</span>
                 </div>
                 <div className="border-t border-border pt-4 flex justify-between font-bold text-2xl text-primary">
@@ -201,30 +207,24 @@ const Checkout = () => {
 
               {paymentMethod !== "card" && (
                 <Button
-                  className="w-full py-7 text-xl font-extrabold group rounded-xl shadow-lg"
-                  onClick={handleNonStripeOrder}
+                  className="w-full py-7 text-xl font-bold rounded-xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  onClick={handleStandardOrder}
                   disabled={isPlacingOrder}
                 >
                   {isPlacingOrder ? (
-                    <>
-                      <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                      Processing...
-                    </>
+                    <Loader2 className="h-6 w-6 animate-spin" />
                   ) : (
-                    <>
-                      <span>Confirm Order</span>
-                      <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-                    </>
+                    "Complete Purchase"
                   )}
                 </Button>
               )}
 
-              <div className="mt-6 flex flex-col items-center gap-3">
-                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-2 rounded-full">
-                  <Lock className="h-3.5 w-3.5" />
-                  <span>256-bit SSL Secure Payment</span>
+              <div className="mt-8 flex flex-col items-center gap-4 border-t border-border pt-6">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  <Lock className="h-3 w-3" />
+                  Secure Transaction
                 </div>
-                <div className="flex gap-2 opacity-50 grayscale hover:grayscale-0 transition-all">
+                <div className="flex gap-4 opacity-40 grayscale">
                   <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4" alt="Visa" />
                   <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-4" alt="Mastercard" />
                 </div>
