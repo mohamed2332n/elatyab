@@ -1,13 +1,13 @@
 "use client";
 
-import React from "react";
-import { Moon, Sun, ShoppingCart, Home, Wallet, FolderOpen, ClipboardList, Gift } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Moon, Sun, Home, Wallet, FolderOpen, ClipboardList, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/context/cart-context";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/context/auth-context";
+import { apiService } from "@/services/api";
 import SearchBar from "@/components/search-bar";
 import CartPreview from "@/components/cart-preview";
 import LanguageToggle from "@/components/language-toggle";
@@ -16,30 +16,38 @@ import CategoryCard from "@/components/category-card";
 import OfferBanner from "@/components/offer-banner";
 import { Header } from "@/components/header";
 import { MadeWithDyad } from "@/components/made-with-dyad";
+import { Product } from "@/lib/types";
 
 const Index = () => {
   const { theme, toggleTheme } = useTheme();
-  const { getTotalItems } = useCart();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const cartCount = getTotalItems();
+  
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const featuredProducts = [
-    { id: "1", name: i18n.language === 'ar' ? 'تفاح طازج' : "Fresh Apple", weight: "500g", originalPrice: 199, discountedPrice: 129, discountPercent: 35 },
-    { id: "2", name: i18n.language === 'ar' ? 'موز عضوي' : "Organic Banana", weight: "1 doz", originalPrice: 89, discountedPrice: 69, discountPercent: 22 },
-    { id: "3", name: i18n.language === 'ar' ? 'مانجو بريميوم' : "Premium Mango", weight: "1 kg", originalPrice: 299, discountedPrice: 199, discountPercent: 33 },
-    { id: "4", name: i18n.language === 'ar' ? 'سبانخ طازجة' : "Fresh Spinach", weight: "250g", originalPrice: 49, discountedPrice: 39, discountPercent: 20 }
-  ];
-
-  const categories = [
-    { id: 1, name: t('category'), icon: "🍎", itemCount: 45 },
-    { id: 2, name: t('category'), icon: "🥬", itemCount: 38 },
-    { id: 3, name: t('category'), icon: "🍿", itemCount: 22 },
-    { id: 4, name: t('category'), icon: "🎁", itemCount: 16 }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [prods, cats] = await Promise.all([
+          apiService.getProducts(i18n.language),
+          apiService.getCategories()
+        ]);
+        setFeaturedProducts(prods.filter(p => p.isInStock).slice(0, 4));
+        setCategories(cats.slice(0, 4));
+      } catch (err) {
+        console.error("Home data fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [i18n.language]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-background text-foreground animate-in-fade">
       <Header />
 
       <main className="flex-grow container mx-auto px-4 py-6">
@@ -50,7 +58,7 @@ const Index = () => {
           </div>
           <div className="flex gap-2">
             <LanguageToggle />
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="hover:scale-110 transition-transform">
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
           </div>
@@ -60,10 +68,10 @@ const Index = () => {
           <SearchBar onSearch={(q) => q && navigate(`/search?q=${q}`)} />
         </div>
 
-        <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl p-8 mb-8 text-white shadow-lg">
-          <h3 className="text-3xl font-bold mb-2">{t('heroTitle')}</h3>
+        <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl p-8 mb-8 text-white shadow-lg card-animate">
+          <h3 className="text-3xl font-bold mb-2 animate-in-slide-up">{t('heroTitle')}</h3>
           <p className="mb-4 text-primary-foreground/90">{t('heroSub')}</p>
-          <Button variant="secondary" className="font-bold" onClick={() => navigate("/categories")}>
+          <Button variant="secondary" className="font-bold hover:scale-105 transition-transform" onClick={() => navigate("/categories")}>
             {t('shopNow')}
           </Button>
         </div>
@@ -79,10 +87,10 @@ const Index = () => {
             {categories.map((c) => (
               <CategoryCard 
                 key={c.id} 
-                name={c.name} 
+                name={i18n.language === 'ar' ? c.name_ar : c.name_en} 
                 icon={c.icon} 
-                itemCount={c.itemCount}
                 onClick={() => navigate("/categories")} 
+                className="card-animate"
               />
             ))}
           </div>
@@ -107,14 +115,18 @@ const Index = () => {
             <Button variant="link" size="sm" onClick={() => navigate("/categories")}>{t('viewAll')}</Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {featuredProducts.map((p) => (
-              <ProductCard key={p.id} {...p} />
-            ))}
+            {loading ? (
+              [1, 2, 3, 4].map(i => <div key={i} className="h-64 skeleton rounded-lg" />)
+            ) : (
+              featuredProducts.map((p) => (
+                <ProductCard key={p.id} {...p} />
+              ))
+            )}
           </div>
         </section>
       </main>
 
-      <nav className="sticky bottom-0 bg-background border-t border-border shadow-lg">
+      <nav className="sticky bottom-0 bg-background border-t border-border shadow-lg z-50">
         <div className="container mx-auto px-2">
           <div className="flex justify-around py-1">
             {[
@@ -127,7 +139,7 @@ const Index = () => {
               <Button
                 key={index}
                 variant="ghost"
-                className="flex flex-col items-center justify-center h-14 w-full px-1 hover:bg-muted"
+                className="flex flex-col items-center justify-center h-14 w-full px-1 hover:bg-muted transition-all"
                 onClick={() => navigate(item.path)}
               >
                 <item.icon className="h-5 w-5" />
