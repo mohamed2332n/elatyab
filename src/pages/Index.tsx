@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { isRateLimited } from '@/utils/rate-limiter';
 import { validateData, itemSchema } from '@/utils/validation';
 import { z } from 'zod';
+import { ValidationError } from '@/utils/validation';
 
 // Example API service with CSRF protection
 const apiService = {
@@ -15,9 +16,9 @@ const apiService = {
     // Validate data before sending
     const validation = validateData(itemSchema, data);
     if (!validation.success) {
-      throw new Error(`Validation error: ${validation.errors.join(', ')}`);
+      const error = validation as ValidationError;
+      throw new Error(`Validation error: ${error.errors.join(', ')}`);
     }
-
     const response = await fetch('/api/items', {
       method: 'POST',
       headers: {
@@ -26,29 +27,27 @@ const apiService = {
       },
       body: JSON.stringify(validation.data),
     });
-    
     if (!response.ok) {
       throw new Error('Failed to create item');
     }
     return response.json();
   },
-  
+
   // Example DELETE request with CSRF protection
   deleteItem: async (id: string) => {
     // Validate ID format
     const idSchema = z.string().min(1, "ID is required");
     const validation = validateData(idSchema, id);
     if (!validation.success) {
-      throw new Error(`Validation error: ${validation.errors.join(', ')}`);
+      const error = validation as ValidationError;
+      throw new Error(`Validation error: ${error.errors.join(', ')}`);
     }
-
     const response = await fetch(`/api/items/${id}`, {
       method: 'DELETE',
       headers: {
         'X-Requested-With': 'XMLHttpRequest', // CSRF protection header
       },
     });
-    
     if (!response.ok) {
       throw new Error('Failed to delete item');
     }
@@ -89,7 +88,6 @@ const Index = () => {
       toast.error('Too many requests. Please wait before creating another item.');
       return;
     }
-
     createItemMutation.mutate({
       name: `Item ${items.length + 1}`,
       description: `Description for item ${items.length + 1}`
@@ -102,7 +100,6 @@ const Index = () => {
       toast.error('Too many requests. Please wait before deleting again.');
       return;
     }
-
     deleteItemMutation.mutate(id);
   };
 
@@ -146,7 +143,7 @@ const Index = () => {
               >
                 {createItemMutation.isPending ? 'Creating...' : 'Create New Item'}
               </Button>
-              
+
               <div className="pt-4">
                 <h3 className="font-medium text-gray-900 mb-2">Current Items</h3>
                 <ul className="space-y-2">
@@ -182,21 +179,18 @@ const Index = () => {
                     <code className="block bg-white p-2 mt-1 rounded">X-Requested-With: XMLHttpRequest</code>
                   </p>
                 </div>
-                
                 <div className="p-4 bg-green-50 rounded-lg">
                   <h4 className="font-medium text-green-800 mb-2">Protected Hooks</h4>
                   <p className="text-sm text-green-700">
                     Using <code className="bg-white px-1 rounded">useProtectedMutation</code> hook for all mutations
                   </p>
                 </div>
-                
                 <div className="p-4 bg-purple-50 rounded-lg">
                   <h4 className="font-medium text-purple-800 mb-2">Rate Limiting</h4>
                   <p className="text-sm text-purple-700">
                     Client-side rate limiting prevents abuse (1 request per second)
                   </p>
                 </div>
-                
                 <div className="p-4 bg-amber-50 rounded-lg">
                   <h4 className="font-medium text-amber-800 mb-2">Data Validation</h4>
                   <p className="text-sm text-amber-700">
