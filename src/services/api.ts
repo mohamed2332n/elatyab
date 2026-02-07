@@ -1,6 +1,10 @@
 // Mock API service to simulate server-side operations
 // In a real application, this would make actual HTTP requests to a backend
 
+import { retryAsync, handleApiError, withTimeout } from '@/utils/error-handler';
+import { validateData, cartItemSchema, isValidQuantity } from '@/utils/validation';
+import { API, PAGINATION, CART } from '@/lib/constants';
+
 export interface Product {
   id: string;
   name: string;
@@ -57,7 +61,21 @@ export interface Order {
   deliveryTime: string;
 }
 
-// Mock data
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  error: string;
+  code: string;
+}
+
+// Mock data - Enhanced product catalog
 const mockProducts: Product[] = [
   {
     id: "1",
@@ -126,6 +144,142 @@ const mockProducts: Product[] = [
     origin: "Punjab Farms, India",
     harvestDate: "2023-05-21",
     freshness: "Very Fresh"
+  },
+  {
+    id: "5",
+    name: "Red Grapes",
+    description: "Sweet and juicy red grapes packed with antioxidants. Great for desserts and snacking.",
+    weight: "500g",
+    originalPrice: 149,
+    discountedPrice: 99,
+    discountPercent: 34,
+    isInStock: true,
+    images: ["/placeholder.svg"],
+    tags: ["Organic", "Fresh"],
+    rating: 4.6,
+    reviewsCount: 145,
+    origin: "Tamil Nadu Farms, India",
+    harvestDate: "2023-05-19",
+    freshness: "Very Fresh"
+  },
+  {
+    id: "6",
+    name: "Carrots",
+    description: "Freshly harvested carrots, rich in beta-carotene and fiber. Perfect for salads and cooking.",
+    weight: "1 kg",
+    originalPrice: 59,
+    discountedPrice: 45,
+    discountPercent: 24,
+    isInStock: true,
+    images: ["/placeholder.svg"],
+    tags: ["Local", "Fresh"],
+    rating: 4.4,
+    reviewsCount: 112,
+    origin: "Uttar Pradesh Farms, India",
+    harvestDate: "2023-05-22",
+    freshness: "Very Fresh"
+  },
+  {
+    id: "7",
+    name: "Tomatoes",
+    description: "Ripe and juicy tomatoes, perfect for making sauces, salads, and curries.",
+    weight: "500g",
+    originalPrice: 39,
+    discountedPrice: 29,
+    discountPercent: 26,
+    isInStock: true,
+    images: ["/placeholder.svg"],
+    tags: ["Fresh", "Local"],
+    rating: 4.3,
+    reviewsCount: 89,
+    origin: "Karnataka Farms, India",
+    harvestDate: "2023-05-22",
+    freshness: "Very Fresh"
+  },
+  {
+    id: "8",
+    name: "Bell Peppers",
+    description: "Vibrant and crisp bell peppers in multiple colors. Ideal for salads and stir-fries.",
+    weight: "500g",
+    originalPrice: 79,
+    discountedPrice: 59,
+    discountPercent: 25,
+    isInStock: true,
+    images: ["/placeholder.svg"],
+    tags: ["Organic", "Fresh"],
+    rating: 4.5,
+    reviewsCount: 98,
+    origin: "Madhya Pradesh Farms, India",
+    harvestDate: "2023-05-21",
+    freshness: "Very Fresh"
+  },
+  {
+    id: "9",
+    name: "Lettuce",
+    description: "Crisp and fresh lettuce, perfect for healthy salads and sandwiches.",
+    weight: "300g",
+    originalPrice: 45,
+    discountedPrice: 35,
+    discountPercent: 22,
+    isInStock: true,
+    images: ["/placeholder.svg"],
+    tags: ["Organic", "Leafy"],
+    rating: 4.2,
+    reviewsCount: 67,
+    origin: "Himachal Pradesh Farms, India",
+    harvestDate: "2023-05-22",
+    freshness: "Very Fresh"
+  },
+  {
+    id: "10",
+    name: "Onions",
+    description: "Fresh and pungent onions, essential for everyday cooking. Used in almost every cuisine.",
+    weight: "1 kg",
+    originalPrice: 29,
+    discountedPrice: 19,
+    discountPercent: 34,
+    isInStock: true,
+    images: ["/placeholder.svg"],
+    tags: ["Fresh", "Local"],
+    rating: 4.1,
+    reviewsCount: 156,
+    origin: "Maharashtra Farms, India",
+    harvestDate: "2023-05-20",
+    freshness: "Fresh"
+  },
+  {
+    id: "11",
+    name: "Oranges",
+    description: "Juicy and sweet oranges packed with vitamin C. Perfect for making juice or eating fresh.",
+    weight: "1 kg",
+    originalPrice: 119,
+    discountedPrice: 89,
+    discountPercent: 25,
+    isInStock: true,
+    images: ["/placeholder.svg"],
+    tags: ["Fresh", "Seasonal"],
+    rating: 4.4,
+    reviewsCount: 134,
+    origin: "Rajasthan Farms, India",
+    harvestDate: "2023-05-19",
+    freshness: "Very Fresh"
+  },
+  {
+    id: "12",
+    name: "Watermelon",
+    description: "Refreshing and hydrating watermelon, perfect for hot summer days.",
+    weight: "1 pc (4-5 kg)",
+    originalPrice: 199,
+    discountedPrice: 149,
+    discountPercent: 25,
+    isInStock: true,
+    images: ["/placeholder.svg"],
+    tags: ["Seasonal", "Fresh"],
+    rating: 4.6,
+    reviewsCount: 201,
+    origin: "Rajasthan Farms, India",
+    harvestDate: "2023-05-21",
+    freshness: "Very Fresh"
   }
 ];
 
@@ -144,128 +298,327 @@ const mockOrders: Order[] = [
   { id: "ORD-003", date: "2023-05-05", status: "Confirmed", total: 780, items: 8, deliveryTime: "07:00 PM" }
 ];
 
-// Mock API functions
+// Mock API functions with improved error handling and validation
 export const apiService = {
-  // Get product by ID (server-side validated)
+  // Get product by ID with error handling and validation
   getProduct: async (id: string): Promise<Product | null> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const product = mockProducts.find(p => p.id === id);
-    return product || null;
+    if (!id || typeof id !== 'string') {
+      throw handleApiError(new Error('Invalid product ID'));
+    }
+
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          const product = mockProducts.find(p => p.id === id);
+          return product || null;
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Get all products (server-side validated)
-  getProducts: async (): Promise<Product[]> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockProducts;
+  // Get all products with pagination
+  getProducts: async (page: number = 1, pageSize: number = PAGINATION.DEFAULT_PAGE_SIZE): Promise<PaginatedResponse<Product>> => {
+    if (!Number.isInteger(page) || page < 1) {
+      throw handleApiError(new Error('Invalid page number'));
+    }
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > PAGINATION.MAX_PAGE_SIZE) {
+      throw handleApiError(new Error('Invalid page size'));
+    }
+
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          const startIndex = (page - 1) * pageSize;
+          const endIndex = startIndex + pageSize;
+          const items = mockProducts.slice(startIndex, endIndex);
+          const total = mockProducts.length;
+
+          return {
+            data: items,
+            total,
+            page,
+            pageSize,
+            hasMore: endIndex < total
+          };
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Get wallet data (server-side validated)
+  // Search products with validation
+  searchProducts: async (query: string, filters?: { minPrice?: number; maxPrice?: number; inStock?: boolean }): Promise<Product[]> => {
+    if (!query || typeof query !== 'string') {
+      throw handleApiError(new Error('Invalid search query'));
+    }
+
+    const trimmedQuery = query.trim().toLowerCase();
+    if (trimmedQuery.length === 0 || trimmedQuery.length > 100) {
+      throw handleApiError(new Error('Search query must be between 1 and 100 characters'));
+    }
+
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          let results = mockProducts.filter(product => 
+            product.name.toLowerCase().includes(trimmedQuery) ||
+            product.description.toLowerCase().includes(trimmedQuery) ||
+            product.tags.some(tag => tag.toLowerCase().includes(trimmedQuery))
+          );
+
+          // Apply filters
+          if (filters?.minPrice !== undefined) {
+            results = results.filter(p => p.discountedPrice >= filters.minPrice!);
+          }
+          if (filters?.maxPrice !== undefined) {
+            results = results.filter(p => p.discountedPrice <= filters.maxPrice!);
+          }
+          if (filters?.inStock) {
+            results = results.filter(p => p.isInStock);
+          }
+
+          return results;
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  },
+  
+  // Get wallet data with error handling
   getWalletData: async (): Promise<WalletData> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockWalletData;
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          return mockWalletData;
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Recharge wallet (server-side validated)
+  // Recharge wallet with validation
   rechargeWallet: async (amount: number): Promise<{ success: boolean; newBalance: number }> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // In a real app, this would validate the payment and update server-side
-    const newBalance = mockWalletData.balance + amount;
-    mockWalletData.balance = newBalance;
-    
-    // Add transaction
-    const newTransaction: WalletTransaction = {
-      id: mockWalletData.transactions.length + 1,
-      type: "credit",
-      amount,
-      description: "Wallet recharge",
-      date: new Date().toISOString().split('T')[0]
-    };
-    
-    mockWalletData.transactions.unshift(newTransaction);
-    
-    return { success: true, newBalance };
+    if (!Number.isFinite(amount) || amount < 100 || amount > 10000) {
+      throw handleApiError(new Error('Recharge amount must be between ₹100 and ₹10000'));
+    }
+
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // In a real app, this would validate payment and update server-side
+          const newBalance = mockWalletData.balance + amount;
+          mockWalletData.balance = newBalance;
+          
+          // Add transaction
+          const newTransaction: WalletTransaction = {
+            id: mockWalletData.transactions.length + 1,
+            type: "credit",
+            amount,
+            description: "Wallet recharge",
+            date: new Date().toISOString().split('T')[0]
+          };
+          
+          mockWalletData.transactions.unshift(newTransaction);
+          
+          return { success: true, newBalance };
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Get cart items (server-side validated)
+  // Get cart items with error handling
   getCartItems: async (): Promise<CartItem[]> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real app, this would fetch from server-side session or database
-    // For this example, we'll return an empty array to force client to manage cart
-    // but validate during checkout
-    return [];
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // In a real app, this would fetch from server-side session or database
+          // For this example, we'll return an empty array to force client to manage cart
+          // but validate during checkout
+          return [];
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Add item to cart (server-side validated)
+  // Add item to cart with validation
   addToCart: async (item: Omit<CartItem, "quantity">): Promise<{ success: boolean }> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real app, this would validate the item exists and is in stock
-    // then add to server-side cart
-    return { success: true };
+    // Validate item structure
+    if (!item.id || !item.name || !Number.isFinite(item.price)) {
+      throw handleApiError(new Error('Invalid cart item'));
+    }
+
+    if (item.price <= 0) {
+      throw handleApiError(new Error('Item price must be greater than 0'));
+    }
+
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // In a real app, this would validate the item exists and is in stock
+          // then add to server-side cart
+          return { success: true };
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Update cart item quantity (server-side validated)
+  // Update cart item quantity with validation
   updateCartItem: async (id: string, quantity: number): Promise<{ success: boolean }> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real app, this would validate the item exists, is in stock,
-    // and the quantity is valid
-    return { success: true };
+    if (!id || typeof id !== 'string') {
+      throw handleApiError(new Error('Invalid item ID'));
+    }
+
+    if (!isValidQuantity(quantity)) {
+      throw handleApiError(new Error(`Quantity must be between 1 and ${CART.MAX_QUANTITY}`));
+    }
+
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // In a real app, this would validate the item exists, is in stock,
+          // and the quantity is valid
+          return { success: true };
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Remove item from cart (server-side validated)
+  // Remove item from cart with validation
   removeFromCart: async (id: string): Promise<{ success: boolean }> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In a real app, this would remove from server-side cart
-    return { success: true };
+    if (!id || typeof id !== 'string') {
+      throw handleApiError(new Error('Invalid item ID'));
+    }
+
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // In a real app, this would remove from server-side cart
+          return { success: true };
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Get orders (server-side validated)
+  // Get orders with error handling
   getOrders: async (): Promise<Order[]> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockOrders;
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 300));
+          return mockOrders;
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   },
   
-  // Place order (server-side validated)
+  // Place order with comprehensive validation
   placeOrder: async (items: OrderItem[], total: number): Promise<{ success: boolean; orderId: string }> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In a real app, this would:
-    // 1. Validate all items exist and are in stock
-    // 2. Validate prices match current server values
-    // 3. Check user authentication
-    // 4. Process payment
-    // 5. Create order record
-    // 6. Update inventory
-    
-    const orderId = `ORD-${String(mockOrders.length + 1).padStart(3, '0')}`;
-    
-    // Add new order
-    const newOrder: Order = {
-      id: orderId,
-      date: new Date().toISOString().split('T')[0],
-      status: "Confirmed",
-      total,
-      items: items.reduce((sum, item) => sum + item.quantity, 0),
-      deliveryTime: "06:00 PM"
-    };
-    
-    mockOrders.unshift(newOrder);
-    
-    return { success: true, orderId };
+    // Validate items
+    if (!Array.isArray(items) || items.length === 0) {
+      throw handleApiError(new Error('Order must contain at least one item'));
+    }
+
+    // Validate each item
+    for (const item of items) {
+      const validation = validateData(cartItemSchema, item);
+      if (!validation.success) {
+        throw handleApiError(new Error(`Invalid cart item: ${validation.errors[0]}`));
+      }
+    }
+
+    // Validate total
+    if (!Number.isFinite(total) || total <= 0) {
+      throw handleApiError(new Error('Invalid order total'));
+    }
+
+    try {
+      return await withTimeout(
+        retryAsync(async () => {
+          // Simulate network delay
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // In a real app, this would:
+          // 1. Validate all items exist and are in stock
+          // 2. Validate prices match current server values
+          // 3. Check user authentication
+          // 4. Process payment
+          // 5. Create order record
+          // 6. Update inventory
+          
+          const orderId = `ORD-${String(mockOrders.length + 1).padStart(3, '0')}`;
+          
+          // Add new order
+          const newOrder: Order = {
+            id: orderId,
+            date: new Date().toISOString().split('T')[0],
+            status: "Confirmed",
+            total,
+            items: items.reduce((sum, item) => sum + item.quantity, 0),
+            deliveryTime: "06:00 PM"
+          };
+          
+          mockOrders.unshift(newOrder);
+          
+          return { success: true, orderId };
+        }, 2, API.RETRY_DELAY),
+        API.TIMEOUT
+      );
+    } catch (error) {
+      throw handleApiError(error);
+    }
   }
 };
