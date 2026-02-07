@@ -109,6 +109,8 @@ export const apiService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
+    console.log("Attempting to place order for user:", user.id);
+
     // 1. Create Order
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -121,7 +123,12 @@ export const apiService = {
       .select()
       .single();
 
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error("Error creating order:", orderError);
+      throw orderError;
+    }
+
+    console.log("Order created successfully:", order.id);
 
     // 2. Create Order Items
     const orderItems = items.map(item => ({
@@ -133,7 +140,13 @@ export const apiService = {
     }));
 
     const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-    if (itemsError) throw itemsError;
+    
+    if (itemsError) {
+      console.error("Error creating order items:", itemsError);
+      // Optional: Delete the order if items fail (Transaction-like behavior)
+      await supabase.from('orders').delete().eq('id', order.id);
+      throw itemsError;
+    }
 
     return { success: true, orderId: order.id };
   },
