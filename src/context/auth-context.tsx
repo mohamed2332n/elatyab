@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, AuthContextType } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
+import { supabase } from "@/lib/supabase";
 import { apiService } from "@/services/api";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -10,71 +11,85 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  const fetchProfile = async () => {
+    try {
+      const userData = await apiService.getMe();
+      setUser(userData);
+    } catch (err) {
+      console.error("Profile fetch failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const userData = await apiService.getMe();
-        if (userData) setUser(userData);
-      } catch (err) {
-        console.error("Auth check failed:", err);
-      } finally {
+    // Initial check
+    fetchProfile();
+
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        fetchProfile();
+      } else {
+        setUser(null);
         setLoading(false);
       }
-    };
-    checkAuth();
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, pass: string) => {
     setLoading(true);
-    try {
-      const success = await apiService.login(email, password);
-      if (success) {
-        const userData = await apiService.getMe();
-        setUser(userData);
-        showSuccess("Welcome back!");
-      } else {
-        throw new Error("Invalid credentials");
-      }
-    } catch (err: any) {
-      showError(err.message || "Login failed");
-    } finally {
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+      showError(error.message);
       setLoading(false);
+    } else {
+      showSuccess("Welcome back!");
     }
   };
 
-  const signup = async (name: string, email: string, phone: string, password: string) => {
+  const signup = async (name: string, email: string, phone: string, pass: string) => {
     setLoading(true);
-    try {
-      const userData: User = {
-        id: `user_${Date.now()}`,
-        name, email, phone, address: "",
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
-      };
-      setUser(userData);
-      showSuccess("Account created successfully!");
-    } catch (err: any) {
-      showError(err.message || "Signup failed");
-    } finally {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: pass,
+      options: { data: { name, phone } }
+    });
+
+    if (error) {
+      showError(error.message);
       setLoading(false);
+    } else if (data.user) {
+      // Profile trigger 'handle_new_user' handles DB insertion
+      showSuccess("Check your email for confirmation!");
     }
   };
 
-  const logout = () => {
-    apiService.logout();
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    showSuccess("Logged out successfully");
+    showSuccess("Logged out");
   };
 
   const updateProfile = async (updates: Partial<User>) => {
     if (!user) return;
-    setUser({ ...user, ...updates });
-    showSuccess("Profile updated!");
+    const { error } = await supabase
+      .from('profiles')
+      .update({ name: updates.name, phone: updates.phone, avatar_url: updates.avatar })
+      .eq('id', user.id);
+    
+    if (error) showError(error.message);
+    else {
+      setUser({ ...user, ...updates });
+      showSuccess("Profile updated");
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, isAuthenticated: !!user, login, signup, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, error: null, isAuthenticated: !!user, login, signup, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
