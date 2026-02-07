@@ -16,7 +16,6 @@ export const getEnvVariable = (name: string, defaultValue?: string): string => {
 };
 
 export const getEnvVariableBoolean = (name: string, defaultValue: boolean = false): boolean => {
-  // Enforce VITE_ prefix for client-side environment variables
   if (!name.startsWith('VITE_')) {
     throw new Error(`Client-side environment variable "${name}" must be prefixed with "VITE_". This prevents accidental exposure of sensitive credentials.`);
   }
@@ -29,7 +28,6 @@ export const getEnvVariableBoolean = (name: string, defaultValue: boolean = fals
 };
 
 export const getEnvVariableNumber = (name: string, defaultValue: number = 0): number => {
-  // Enforce VITE_ prefix for client-side environment variables
   if (!name.startsWith('VITE_')) {
     throw new Error(`Client-side environment variable "${name}" must be prefixed with "VITE_". This prevents accidental exposure of sensitive credentials.`);
   }
@@ -45,9 +43,12 @@ export const getEnvVariableNumber = (name: string, defaultValue: number = 0): nu
   return num;
 };
 
-// Example of how to safely access VITE_ prefixed environment variables
 export const getApiUrl = (): string => {
   return getEnvVariable('VITE_API_URL', '/api');
+};
+
+export const getStripePublishableKey = (): string => {
+  return getEnvVariable('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_51SyEE0BZLVsTtlKZsC4HPfm0nsHkVbqS8SNaWLLMnJuXu4UIAhNYObHKgGFZiE5Z7H6VwujTaAlztd8xtU8Nruz000za8TfatP');
 };
 
 export const isDevelopment = (): boolean => {
