@@ -41,7 +41,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        // Check if Supabase is properly configured
+        if (!supabase || !supabase.auth) {
+          console.warn("⚠️ Supabase not configured. Running in demo mode.");
+          setLoading(false);
+          return;
+        }
+
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) {
+          console.warn("⚠️ Auth check failed:", authError.message);
+          setLoading(false);
+          return;
+        }
         
         if (authUser) {
           // Get full profile from database
@@ -74,7 +87,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     checkAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes only if Supabase is configured
+    if (!supabase || !supabase.auth) {
+      return;
+    }
+
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const { data: profile } = await authService.getUserProfile(session.user.id);
