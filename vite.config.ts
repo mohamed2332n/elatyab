@@ -15,11 +15,9 @@ export default defineConfig(() => ({
     },
   },
   // Ensure environment variables are properly handled
-  envPrefix: 'VITE_',
-  // Only expose VITE_ prefixed variables to client
+  envPrefix: 'VITE_', // Only expose VITE_ prefixed variables to client
   define: {
     // Prevents accidental exposure of non-VITE_ prefixed environment variables
-    // Safely handle undefined environment variables
     __APP_ENV__: JSON.stringify(import.meta.env.VITE_APP_ENV || 'development'),
   },
 }));
