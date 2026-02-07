@@ -1,20 +1,50 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Phone, Mail, MapPin, Bell, Shield, CreditCard, Heart, LogOut, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Profile = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const [user] = useState({
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+91 9876543210",
-    address: "123 Main Street, Apartment 4B, New Delhi, 110001"
-  });
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check authentication status
+  useEffect(() => {
+    // In a real app, this would fetch user data from an authenticated API
+    const checkAuth = () => {
+      // For demo purposes, we'll use localStorage
+      const authenticated = localStorage.getItem("authenticated");
+      
+      if (!authenticated) {
+        navigate("/");
+        return;
+      }
+      
+      // Mock user data (in a real app, this would come from an API)
+      setUser({
+        name: "John Doe",
+        email: "john.doe@example.com",
+        phone: "+91 9876543210",
+        address: "123 Main Street, Apartment 4B, New Delhi, 110001"
+      });
+      
+      setLoading(false);
+    };
+    
+    checkAuth();
+  }, [navigate]);
+
+  const handleLogout = () => {
+    // In a real app, this would call an API to invalidate the session
+    localStorage.removeItem("authenticated");
+    toast.success("You have been logged out");
+    navigate("/");
+  };
 
   const menuItems = [
     { icon: User, label: "Personal Information", path: "/profile/personal" },
@@ -23,8 +53,49 @@ const Profile = () => {
     { icon: Shield, label: "Security", path: "/profile/security" },
     { icon: CreditCard, label: "Payment Methods", path: "/profile/payment" },
     { icon: Heart, label: "Wishlist", path: "/wishlist" },
-    { icon: LogOut, label: "Logout", action: () => console.log("Logout") }
+    { icon: LogOut, label: "Logout", action: handleLogout }
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4">Loading profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Error Loading Profile</h2>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Button onClick={() => navigate("/")}>Go Home</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">You must be logged in to view this page</p>
+            <Button onClick={() => navigate("/")}>Go Home</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -50,6 +121,13 @@ const Profile = () => {
               <h2 className="text-xl font-bold">{user.name}</h2>
               <p className="text-muted-foreground">{user.email}</p>
             </div>
+          </div>
+          
+          {/* Privacy Notice */}
+          <div className="mt-4 p-3 bg-primary/5 rounded-md border border-primary/20">
+            <p className="text-sm text-primary">
+              Your personal information is protected and only visible to you.
+            </p>
           </div>
           
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -80,6 +158,15 @@ const Profile = () => {
               <span className="font-medium">{item.label}</span>
             </div>
           ))}
+        </div>
+        
+        {/* Security Notice */}
+        <div className="mt-6 p-4 bg-card rounded-lg border border-border">
+          <h3 className="font-bold mb-2">Security Information</h3>
+          <p className="text-sm text-muted-foreground">
+            Your account is protected with industry-standard security measures. 
+            Always log out when using shared devices.
+          </p>
         </div>
       </div>
     </div>

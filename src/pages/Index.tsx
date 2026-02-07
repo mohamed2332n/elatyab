@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { Moon, Sun, Search, ShoppingCart, Home, Wallet, FolderOpen, ClipboardList, Gift, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,50 +9,39 @@ import { MadeWithDyad } from "@/components/made-with-dyad";
 import ProductCard from "@/components/product-card";
 import OfferBanner from "@/components/offer-banner";
 import CategoryCard from "@/components/category-card";
+import { toast } from "sonner";
 
 const Index = () => {
   const { theme, toggleTheme } = useTheme();
   const { getTotalItems } = useCart();
   const navigate = useNavigate();
   const cartCount = getTotalItems();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    setIsAuthenticated(!!localStorage.getItem("authenticated"));
+  }, []);
+
+  const handleLogin = () => {
+    // Simulate login
+    localStorage.setItem("authenticated", "true");
+    setIsAuthenticated(true);
+    toast.success("You are now logged in");
+  };
+
+  const handleLogout = () => {
+    // Simulate logout
+    localStorage.removeItem("authenticated");
+    setIsAuthenticated(false);
+    toast.success("You have been logged out");
+  };
 
   const featuredProducts = [
-    {
-      id: "1",
-      name: "Fresh Apple",
-      weight: "500g",
-      originalPrice: 199,
-      discountedPrice: 129,
-      discountPercent: 35,
-      isInStock: true
-    },
-    {
-      id: "2",
-      name: "Organic Banana",
-      weight: "1 dozen",
-      originalPrice: 89,
-      discountedPrice: 69,
-      discountPercent: 22,
-      isInStock: true
-    },
-    {
-      id: "3",
-      name: "Premium Mango",
-      weight: "1 kg",
-      originalPrice: 299,
-      discountedPrice: 199,
-      discountPercent: 33,
-      isInStock: true
-    },
-    {
-      id: "4",
-      name: "Fresh Spinach",
-      weight: "250g",
-      originalPrice: 49,
-      discountedPrice: 39,
-      discountPercent: 20,
-      isInStock: true
-    }
+    { id: "1", name: "Fresh Apple", weight: "500g", originalPrice: 199, discountedPrice: 129, discountPercent: 35, isInStock: true },
+    { id: "2", name: "Organic Banana", weight: "1 dozen", originalPrice: 89, discountedPrice: 69, discountPercent: 22, isInStock: true },
+    { id: "3", name: "Premium Mango", weight: "1 kg", originalPrice: 299, discountedPrice: 199, discountPercent: 33, isInStock: true },
+    { id: "4", name: "Fresh Spinach", weight: "250g", originalPrice: 49, discountedPrice: 39, discountPercent: 20, isInStock: true }
   ];
 
   const categories = [
@@ -73,15 +61,20 @@ const Index = () => {
               <div className="bg-primary w-8 h-8 rounded-full"></div>
               <h1 className="text-xl font-bold">FreshCart</h1>
             </div>
-            
             <div className="flex items-center space-x-3">
               <Button variant="ghost" size="icon" onClick={toggleTheme}>
                 {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
               
-              <Button variant="ghost" size="icon" onClick={() => navigate("/profile")}>
-                <User className="h-5 w-5" />
-              </Button>
+              {isAuthenticated ? (
+                <Button variant="ghost" size="icon" onClick={handleLogout}>
+                  <User className="h-5 w-5" />
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={handleLogin}>
+                  Login
+                </Button>
+              )}
               
               <div className="relative">
                 <Button variant="ghost" size="icon" onClick={() => navigate("/cart")}>
@@ -95,19 +88,18 @@ const Index = () => {
               </div>
             </div>
           </div>
-          
           <div className="mt-3 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Find Products here!"
+            <input 
+              type="text" 
+              placeholder="Find Products here!" 
               className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted border border-input focus:outline-none focus:ring-2 focus:ring-primary"
-              onClick={() => navigate("/search")}
+              onClick={() => navigate("/search")} 
             />
           </div>
         </div>
       </header>
-
+      
       {/* Main Content */}
       <main className="flex-grow container mx-auto px-4 py-6">
         <div className="mb-6">
@@ -130,12 +122,12 @@ const Index = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map((category) => (
-              <CategoryCard
-                key={category.id}
-                name={category.name}
-                icon={category.icon}
-                itemCount={category.itemCount}
-                onClick={() => navigate("/categories")}
+              <CategoryCard 
+                key={category.id} 
+                name={category.name} 
+                icon={category.icon} 
+                itemCount={category.itemCount} 
+                onClick={() => navigate("/categories")} 
               />
             ))}
           </div>
@@ -147,11 +139,11 @@ const Index = () => {
             <h3 className="text-xl font-bold">Special Offers</h3>
             <Button variant="link" onClick={() => navigate("/offers")}>View All</Button>
           </div>
-          <OfferBanner
-            title="Deal of the Day"
-            description="Potato-15 Carrot-29 Palak-29 Mushroom-35"
-            validTill="06-02-2026"
-            onOrderNow={() => navigate("/offers")}
+          <OfferBanner 
+            title="Deal of the Day" 
+            description="Potato-15 Carrot-29 Palak-29 Mushroom-35" 
+            validTill="06-02-2026" 
+            onOrderNow={() => navigate("/offers")} 
           />
         </section>
         
@@ -168,7 +160,7 @@ const Index = () => {
           </div>
         </section>
       </main>
-
+      
       {/* Bottom Navigation */}
       <nav className="sticky bottom-0 bg-background border-t border-border">
         <div className="container mx-auto px-4">
@@ -193,7 +185,6 @@ const Index = () => {
           </div>
         </div>
       </nav>
-      
       <MadeWithDyad />
     </div>
   );

@@ -1,73 +1,27 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import ProductCard from "@/components/product-card";
+import { isRateLimited } from "@/utils/rate-limiter";
+import { validateData, ValidationError } from "@/utils/validation";
 
 const SearchPage = () => {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Mock search results
   const mockProducts = [
-    {
-      id: "1",
-      name: "Fresh Apple",
-      weight: "500g",
-      originalPrice: 199,
-      discountedPrice: 129,
-      discountPercent: 35,
-      isInStock: true
-    },
-    {
-      id: "2",
-      name: "Organic Banana",
-      weight: "1 dozen",
-      originalPrice: 89,
-      discountedPrice: 69,
-      discountPercent: 22,
-      isInStock: true
-    },
-    {
-      id: "3",
-      name: "Premium Mango",
-      weight: "1 kg",
-      originalPrice: 299,
-      discountedPrice: 199,
-      discountPercent: 33,
-      isInStock: true
-    },
-    {
-      id: "4",
-      name: "Fresh Spinach",
-      weight: "250g",
-      originalPrice: 49,
-      discountedPrice: 39,
-      discountPercent: 20,
-      isInStock: true
-    },
-    {
-      id: "5",
-      name: "Red Grapes",
-      weight: "500g",
-      originalPrice: 149,
-      discountedPrice: 99,
-      discountPercent: 34,
-      isInStock: true
-    },
-    {
-      id: "6",
-      name: "Carrots",
-      weight: "1 kg",
-      originalPrice: 59,
-      discountedPrice: 45,
-      discountPercent: 24,
-      isInStock: true
-    }
+    { id: "1", name: "Fresh Apple", weight: "500g", originalPrice: 199, discountedPrice: 129, discountPercent: 35, isInStock: true },
+    { id: "2", name: "Organic Banana", weight: "1 dozen", originalPrice: 89, discountedPrice: 69, discountPercent: 22, isInStock: true },
+    { id: "3", name: "Premium Mango", weight: "1 kg", originalPrice: 299, discountedPrice: 199, discountPercent: 33, isInStock: true },
+    { id: "4", name: "Fresh Spinach", weight: "250g", originalPrice: 49, discountedPrice: 39, discountPercent: 20, isInStock: true },
+    { id: "5", name: "Red Grapes", weight: "500g", originalPrice: 149, discountedPrice: 99, discountPercent: 34, isInStock: true },
+    { id: "6", name: "Carrots", weight: "1 kg", originalPrice: 59, discountedPrice: 45, discountPercent: 24, isInStock: true }
   ];
 
   useEffect(() => {
@@ -78,26 +32,62 @@ const SearchPage = () => {
     }
   }, []);
 
+  // Sanitize input to prevent injection attacks
+  const sanitizeInput = (input: string): string => {
+    return input
+      .trim()
+      .replace(/[<>]/g, "") // Remove potentially dangerous characters
+      .substring(0, 100); // Limit length
+  };
+
+  const validateSearchQuery = (query: string): { isValid: boolean; error?: string } => {
+    // Check for rate limiting
+    if (isRateLimited("search", 1000)) {
+      return { isValid: false, error: "Please wait before searching again" };
+    }
+
+    // Basic validation
+    if (query.length < 1) {
+      return { isValid: false, error: "Search query is too short" };
+    }
+
+    if (query.length > 100) {
+      return { isValid: false, error: "Search query is too long" };
+    }
+
+    return { isValid: true };
+  };
+
   const handleSearch = (query: string) => {
-    if (!query.trim()) return;
+    const sanitizedQuery = sanitizeInput(query);
     
-    setSearchQuery(query);
+    // Validate search query
+    const validation = validateSearchQuery(sanitizedQuery);
+    if (!validation.isValid) {
+      setError(validation.error || "Invalid search query");
+      return;
+    }
     
+    setError(null);
+    setSearchQuery(sanitizedQuery);
+
     // Save to recent searches
-    const updatedSearches = [query, ...recentSearches.filter(item => item !== query)].slice(0, 5);
+    const updatedSearches = [sanitizedQuery, ...recentSearches.filter(item => item !== sanitizedQuery)].slice(0, 5);
     setRecentSearches(updatedSearches);
     localStorage.setItem("recentSearches", JSON.stringify(updatedSearches));
-    
-    // Filter mock products based on query
+
+    // Filter mock products based on sanitized query
     const results = mockProducts.filter(product => 
-      product.name.toLowerCase().includes(query.toLowerCase())
+      product.name.toLowerCase().includes(sanitizedQuery.toLowerCase())
     );
+    
     setSearchResults(results);
   };
 
   const clearSearch = () => {
     setSearchQuery("");
     setSearchResults([]);
+    setError(null);
   };
 
   const clearRecentSearches = () => {
@@ -111,18 +101,18 @@ const SearchPage = () => {
         {/* Search Header */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <input
-            type="text"
-            placeholder="Find Products here!"
+          <input 
+            type="text" 
+            placeholder="Find Products here!" 
             className="w-full pl-10 pr-10 py-3 rounded-lg bg-muted border border-input focus:outline-none focus:ring-2 focus:ring-primary"
-            value={searchQuery}
+            value={searchQuery} 
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
           />
           {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
+            <Button 
+              variant="ghost" 
+              size="icon" 
               className="absolute right-2 top-1/2 transform -translate-y-1/2"
               onClick={clearSearch}
             >
@@ -131,13 +121,18 @@ const SearchPage = () => {
           )}
         </div>
         
+        {error && (
+          <div className="bg-destructive/10 border border-destructive rounded-md p-3 mb-4 text-destructive text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Search Results */}
         {searchQuery ? (
           <div>
             <h2 className="text-xl font-bold mb-4">
               {searchResults.length} results for "{searchQuery}"
             </h2>
-            
             {searchResults.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {searchResults.map((product) => (
@@ -165,7 +160,6 @@ const SearchPage = () => {
                 <Button variant="link" onClick={clearRecentSearches}>Clear All</Button>
               )}
             </div>
-            
             {recentSearches.length > 0 ? (
               <div className="space-y-2">
                 {recentSearches.map((search, index) => (
