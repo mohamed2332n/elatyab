@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { showError, showSuccess } from "@/utils/toast";
+<<<<<<< HEAD
+import { apiService, User } from "@/services/api";
+=======
 import { authService } from "@/services/supabase/auth";
 import { supabase } from "@/config/supabase";
 
@@ -11,8 +14,8 @@ interface User {
   email: string;
   phone: string;
   avatar?: string;
-  address?: string;
 }
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 interface AuthContextType {
   user: User | null;
@@ -40,6 +43,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+<<<<<<< HEAD
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const userData = await apiService.getMe();
+        if (userData) {
+          setUser(userData);
+=======
   // Check if user is logged in and get profile
   useEffect(() => {
     const checkAuth = async () => {
@@ -57,7 +68,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               email: profile.email || authUser.email || '',
               phone: profile.phone || '',
               avatar: profile.avatar_url,
-              address: profile.address || '',
             });
           } else {
             // Fallback to auth user info
@@ -68,6 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               phone: authUser.user_metadata?.phone || '',
             });
           }
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
         }
       } catch (err) {
         console.error("Auth check failed:", err);
@@ -89,7 +100,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             email: profile.email || session.user.email || '',
             phone: profile.phone || '',
             avatar: profile.avatar_url,
-            address: profile.address || '',
           });
         }
       } else {
@@ -107,6 +117,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
 
     try {
+      const success = await apiService.login(email, password);
+      if (success) {
+        const userData = await apiService.getMe();
+        setUser(userData);
+        showSuccess(`Welcome back!`);
+      } else {
+        throw new Error("Invalid credentials");
+      }
+<<<<<<< HEAD
+=======
+
       if (!email.includes("@")) {
         throw new Error("Invalid email format");
       }
@@ -127,11 +148,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           email: profile.email || data.user.email || '',
           phone: profile.phone || '',
           avatar: profile.avatar_url,
-          address: profile.address || '',
         });
       }
 
       showSuccess(`Welcome back, ${data.user.email.split("@")[0]}!`);
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
@@ -147,6 +168,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
 
     try {
+<<<<<<< HEAD
+      // In a real app, this would be a server call
+      const userData: User = {
+        id: `user_${Date.now()}`,
+        name,
+        email,
+        phone,
+        address: "",
+      };
+      
+      setUser(userData);
+=======
       // Validate inputs
       if (!name || !email || !phone || !password) {
         throw new Error("All fields are required");
@@ -179,6 +212,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
       });
 
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
       showSuccess("Account created successfully! 🎉");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Signup failed";
@@ -192,13 +226,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     try {
+<<<<<<< HEAD
+      await apiService.logout();
+=======
       await authService.signOut();
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
       setUser(null);
       setError(null);
       showSuccess("Logged out successfully");
     } catch (err) {
+<<<<<<< HEAD
+      console.error("Logout failed:", err);
+=======
       const message = err instanceof Error ? err.message : "Logout failed";
       showError(message);
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     }
   };
 
@@ -207,6 +249,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
 
     try {
+<<<<<<< HEAD
+      if (!user) throw new Error("No user logged in");
+=======
       if (!user) {
         throw new Error("No user logged in");
       }
@@ -216,11 +261,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         name: updates.name,
         phone: updates.phone,
         avatar_url: updates.avatar,
-        address: updates.address,
       });
 
       if (updateError) throw updateError;
 
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
       showSuccess("Profile updated successfully");

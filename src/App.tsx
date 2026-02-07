@@ -4,10 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
+<<<<<<< HEAD
+import { LanguageProvider } from "@/context/language-context";
+=======
 import { LangProvider } from "@/context/lang-context";
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 import { CartProvider } from "@/context/cart-context";
 import { AuthProvider, useAuth } from "@/context/auth-context";
-import { WishlistProvider } from "@/context/wishlist-context";
 import FloatingCart from "@/components/floating-cart";
 import Index from "./pages/Index";
 import Cart from "./pages/Cart";
@@ -107,6 +110,8 @@ const AppRoutes = () => (
         </ProtectedRoute>
       } 
     />
+<<<<<<< HEAD
+=======
     <Route 
       path="/wishlist" 
       element={
@@ -125,16 +130,18 @@ const AppRoutes = () => (
     />
     
     {/* Catch-all */}
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <LangProvider>
-      <AuthProvider>
-        <CartProvider>
-          <WishlistProvider>
+<<<<<<< HEAD
+    <AuthProvider>
+      <CartProvider>
+        <WishlistProvider>
+          <LanguageProvider>
             <ThemeProvider>
               <TooltipProvider>
                 <Toaster />
@@ -145,10 +152,28 @@ const App = () => (
                 </BrowserRouter>
               </TooltipProvider>
             </ThemeProvider>
-          </WishlistProvider>
+          </LanguageProvider>
+        </WishlistProvider>
+      </CartProvider>
+    </AuthProvider>
+=======
+    <LangProvider>
+      <AuthProvider>
+        <CartProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <FloatingCart />
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </ThemeProvider>
         </CartProvider>
       </AuthProvider>
     </LangProvider>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   </QueryClientProvider>
 );
 

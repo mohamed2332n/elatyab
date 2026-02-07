@@ -1,10 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+<<<<<<< HEAD
+import { useTranslation } from "react-i18next";
+import { formatPrice } from "@/utils/price-formatter";
+import { useCart } from "@/context/cart-context";
+import { useWishlist } from "@/context/wishlist-context";
+import { toast } from "sonner";
+
+interface ProductCardProps {
+  id: string;
+  name: string;
+  weight: string;
+  originalPrice: number;
+  discountedPrice: number;
+  discountPercent: number;
+=======
 import { productsService } from "@/services/supabase/products";
 import { wishlistService } from "@/services/supabase/wishlist";
 import { useCart } from "@/context/cart-context";
@@ -12,7 +27,6 @@ import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { formatPrice } from "@/utils/price";
 import { showError } from "@/utils/toast";
-import { useTranslation } from "react-i18next";
 
 interface ProductCardProps {
   product?: {
@@ -29,6 +43,7 @@ interface ProductCardProps {
   originalPrice?: number;
   discountedPrice?: number;
   discountPercent?: number;
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   image?: string;
   isInStock?: boolean;
   className?: string;
@@ -36,6 +51,31 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ 
+<<<<<<< HEAD
+  id,
+  name,
+  weight,
+  originalPrice,
+  discountedPrice,
+  discountPercent,
+  image,
+  isInStock = true,
+  className 
+}: ProductCardProps) => {
+  const { t, i18n } = useTranslation();
+  const { addItem, updateQuantity, items } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const navigate = useNavigate();
+
+  const isFavorite = isInWishlist(id);
+  const cartItem = items.find(i => i.id === id);
+  const quantity = cartItem?.quantity || 0;
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addItem({ id, name, price: discountedPrice, image, weight });
+    toast.success(t('addedToCart'));
+=======
   product,
   id: propId,
   name: initialName,
@@ -51,13 +91,10 @@ const ProductCard = ({
   const id = product?.id || propId;
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { addItem, items, updateQuantity } = useCart();
+  const { addItem } = useCart();
   const { lang } = useLang();
-  const { t } = useTranslation();
 
-  const cartItem = items.find(i => i.id === id);
-  const quantity = cartItem?.quantity || 0;
-
+  const [quantity, setQuantity] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [productData, setProductData] = useState({
     name: product?.name || initialName || "",
@@ -79,14 +116,13 @@ const ProductCard = ({
           setLoading(true);
           const { data, error } = await productsService.getProduct(id);
           if (!error && data) {
-            const discountedPrice = data.price * (1 - data.discount_percentage / 100);
             setProductData({
               name: lang === "ar" ? data.name_ar : data.name_en,
-              weight: data.weight || "",
+              weight: "",
               originalPrice: data.price,
-              discountedPrice: discountedPrice,
+              discountedPrice: data.price * (1 - data.discount_percentage / 100),
               discountPercent: data.discount_percentage,
-              isInStock: data.is_in_stock,
+              isInStock: data.in_stock,
               image: data.image_url
             });
           }
@@ -106,8 +142,8 @@ const ProductCard = ({
   useEffect(() => {
     if (user && id) {
       const checkWishlist = async () => {
-        const { isInWishlist } = await wishlistService.isInWishlist(user.id, id);
-        setIsWishlisted(isInWishlist);
+        const { data } = await wishlistService.isInWishlist(user.id, id);
+        setIsWishlisted(data || false);
       };
       checkWishlist();
     }
@@ -129,33 +165,50 @@ const ProductCard = ({
         return;
       }
 
-      await addItem({
-        id: id,
-        name: productData.name,
-        price: productData.discountedPrice,
-        image: productData.image,
-        weight: productData.weight,
+      const { error } = await addItem({
+        product_id: id,
+        quantity: 1,
+        unit_price: productData.discountedPrice
       });
 
-      if (onAddClick) onAddClick();
-      
+      if (!error) {
+        setQuantity(prev => prev + 1);
+        if (onAddClick) onAddClick();
+      } else {
+        showError("Failed to add item to cart");
+      }
     } catch (error) {
       showError("Failed to add item to cart");
       console.error("Error adding to cart:", error);
     }
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   };
 
   const handleAdjustQuantity = (e: React.MouseEvent, delta: number) => {
     e.stopPropagation();
+<<<<<<< HEAD
+    updateQuantity(id, quantity + delta);
+=======
     
     if (loading || !id || !user) return;
     
-    const newQuantity = quantity + delta;
-    updateQuantity(id, newQuantity);
+    try {
+      // For now, remove from cart by updating quantity to 0
+      setQuantity(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      showError("Failed to remove item from cart");
+      console.error("Error removing from cart:", error);
+    }
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   };
 
   const handleToggleWishlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
+<<<<<<< HEAD
+    toggleWishlist(id);
+  };
+
+=======
     
     if (!user || !id) {
       showError("Please log in to use wishlist");
@@ -202,26 +255,32 @@ const ProductCard = ({
     );
   }
 
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   return (
     <div 
       className={cn("bg-card rounded-lg border border-border overflow-hidden shadow-sm flex flex-col h-full cursor-pointer hover:shadow-md transition-all card-animate", className)} 
-      onClick={handleCardClick}
+      onClick={() => navigate(`/product/${id}`)}
     >
       <div className="relative">
-        <img src={productData.image || "/placeholder.svg"} alt={productData.name} className="w-full h-40 object-cover" />
-        {productData.discountPercent > 0 && (
+        <img src={image || "/placeholder.svg"} alt={name} className="w-full h-40 object-cover" />
+        {discountPercent > 0 && (
           <div className="absolute top-2 left-2 rtl:left-auto rtl:right-2 bg-destructive text-white text-xs font-bold px-2 py-1 rounded animate-pop-in">
-            {productData.discountPercent}% {t('off')}
+            {discountPercent}% {t('off')}
           </div>
         )}
         <Button 
           variant="ghost" 
           size="icon" 
           className={cn(
+<<<<<<< HEAD
             "absolute top-2 right-2 rtl:right-auto rtl:left-2 rounded-full transition-all",
+            isFavorite ? "bg-destructive/20 hover:bg-destructive/30" : "bg-background/80 hover:bg-background"
+=======
+            "absolute top-2 right-2 rounded-full transition-all",
             isWishlisted 
               ? "bg-destructive/20 hover:bg-destructive/30" 
               : "bg-background/80 hover:bg-background"
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
           )}
           onClick={handleToggleWishlist}
         >
@@ -232,6 +291,20 @@ const ProductCard = ({
       </div>
 
       <div className="p-3 flex-grow flex flex-col">
+<<<<<<< HEAD
+        <h4 className="font-semibold mb-1 line-clamp-2">{name}</h4>
+        <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+          <span>📦</span> {weight}
+        </p>
+        
+        <div className="flex items-center justify-between mt-auto">
+          <div>
+            <span className="font-bold text-lg text-green-600">{formatPrice(discountedPrice, i18n.language)}</span>
+            {originalPrice > discountedPrice && (
+              <span className="text-xs text-muted-foreground line-through block">
+                {formatPrice(originalPrice, i18n.language)}
+              </span>
+=======
         {/* Product Name */}
         <h4 className="font-semibold mb-1 line-clamp-2 group-hover:text-primary transition-colors">
           {productData.name}
@@ -250,11 +323,12 @@ const ProductCard = ({
             <span className="font-bold text-lg text-green-600">{formatPrice(productData.discountedPrice, lang)}</span>
             {productData.originalPrice > productData.discountedPrice && (
               <span className="text-xs text-muted-foreground line-through">{formatPrice(productData.originalPrice, lang)}</span>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
             )}
           </div>
 
           {quantity === 0 ? (
-            <Button size="sm" onClick={handleAddToCart} disabled={!productData.isInStock} className="hover:scale-105 transition-transform">
+            <Button size="sm" onClick={handleAddToCart} disabled={!isInStock} className="hover:scale-105 transition-transform">
               <ShoppingCart className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" /> {t('add')}
             </Button>
           ) : (

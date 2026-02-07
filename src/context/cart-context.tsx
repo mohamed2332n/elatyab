@@ -2,8 +2,12 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { showError } from "@/utils/toast";
+<<<<<<< HEAD
+import { useAuth } from "@/context/auth-context";
+=======
 import { cartService } from "@/services/supabase/cart";
 import { useAuth } from "./auth-context";
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 interface CartItem {
   id: string;
@@ -30,6 +34,32 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
+<<<<<<< HEAD
+  const [loading, setLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
+
+  // Initialize cart from server when authenticated
+  useEffect(() => {
+    const initializeCart = async () => {
+      if (isAuthenticated) {
+        try {
+          const serverItems = await apiService.getCartItems();
+          // In a real app, we would set items from server
+          // For this example, we'll keep client-side state but validate operations
+          setItems([]);
+        } catch (error) {
+          console.error("Error initializing cart:", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // For unauthenticated users, we still allow local cart operations
+        setLoading(false);
+      }
+    };
+    initializeCart();
+  }, [isAuthenticated]);
+=======
   const [loading, setLoading] = useState(false);
 
   // Load cart from Supabase when user logs in
@@ -55,7 +85,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           name: item.product?.name_en || '',
           price: item.product?.price || 0,
           quantity: item.quantity,
-          image: item.product?.image_url,
+          image: item.product?.images?.[0],
           weight: item.product?.weight,
         }));
         setItems(transformedItems);
@@ -66,6 +96,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   const addItem = async (item: Omit<CartItem, "quantity">) => {
     if (!user) {
@@ -74,12 +105,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+<<<<<<< HEAD
+      // Validate with server
+      const result = await apiService.addToCart(item);
+      if (result.success) {
+        setItems(prevItems => {
+          const existingItem = prevItems.find(i => i.id === item.id);
+          if (existingItem) {
+            return prevItems.map(i =>
+              i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+            );
+          } else {
+            return [...prevItems, { ...item, quantity: 1 }];
+          }
+        });
+      } else {
+        showError("Failed to add item to cart");
+      }
+=======
       const { data, error } = await cartService.addToCart(user.id, item.id);
       
       if (error) throw error;
 
       // Reload cart to sync with database
       await loadCart();
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     } catch (error) {
       showError("Failed to add item to cart");
       console.error("Error adding to cart:", error);
@@ -90,11 +140,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     try {
+      // Find the cart item ID
+      const cartItem = items.find(i => i.id === id);
+      if (!cartItem) return;
+
       // Get the cart item's database ID
       const { data: cartItems, error: fetchError } = await cartService.getCart(user.id);
       if (fetchError || !cartItems) throw fetchError;
 
-      // Find the cart item's database ID (id in CartItem is product_id)
       const dbId = cartItems.find((ci: any) => ci.product_id === id)?.id;
       if (!dbId) return;
 
@@ -118,11 +171,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+<<<<<<< HEAD
+      // Validate with server
+      const result = await apiService.updateCartItem(id, quantity);
+      if (result.success) {
+        setItems(prevItems =>
+          prevItems.map(item => (item.id === id ? { ...item, quantity } : item))
+        );
+      } else {
+        showError("Failed to update item quantity");
+      }
+=======
       // Get the cart item's database ID
       const { data: cartItems, error: fetchError } = await cartService.getCart(user.id);
       if (fetchError || !cartItems) throw fetchError;
 
-      // Find the cart item's database ID (id in CartItem is product_id)
       const dbId = cartItems.find((ci: any) => ci.product_id === id)?.id;
       if (!dbId) return;
 
@@ -131,6 +194,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // Reload cart to sync
       await loadCart();
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     } catch (error) {
       showError("Failed to update item quantity");
       console.error("Error updating quantity:", error);

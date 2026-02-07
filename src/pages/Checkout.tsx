@@ -13,6 +13,7 @@ import { addressService, Address as DBAddress } from "@/services/supabase/addres
 import { showError, showSuccess } from "@/utils/toast";
 import { MapPin, CreditCard, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatPrice } from "@/utils/price-formatter";
 
 interface Address {
   id: string;
@@ -22,18 +23,25 @@ interface Address {
   address: string;
   city: string;
   postalCode: string;
-  isDefault?: boolean;
 }
 
 const Checkout = () => {
   const { items, getTotalPrice, clearCart } = useCart();
+<<<<<<< HEAD
+  const { user, isAuthenticated } = useAuth();
+  const { t, i18n } = useTranslation();
+=======
   const { user } = useAuth();
-  const { t } = useTranslation();
   const { lang } = useLang();
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   const navigate = useNavigate();
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("wallet");
+<<<<<<< HEAD
+  const [selectedAddressId, setSelectedAddressId] = useState("default");
+  
+=======
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -158,16 +166,19 @@ const Checkout = () => {
     }
   };
 
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   const totalPrice = getTotalPrice();
   const deliveryFee = totalPrice >= 500 ? 0 : 30;
   const finalTotal = totalPrice + deliveryFee;
 
   useEffect(() => {
-    if (!user) navigate("/login");
+    if (!isAuthenticated) navigate("/login");
     if (items.length === 0) navigate("/cart");
-  }, [user, items, navigate]);
+  }, [isAuthenticated, items, navigate]);
 
   const handlePlaceOrder = async () => {
+<<<<<<< HEAD
+=======
     if (items.length === 0) return;
     if (!selectedAddressId) {
       showError("Please select a delivery address");
@@ -178,16 +189,19 @@ const Checkout = () => {
       return;
     }
 
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     setIsPlacingOrder(true);
     try {
+<<<<<<< HEAD
+      const result = await apiService.placeOrder(
+        items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+        finalTotal
+=======
       // Create order items array
       const orderItems = items.map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
         unit_price: item.price,
-        name: item.name,
-        image: item.image,
-        weight: item.weight,
       }));
 
       // Get selected address
@@ -195,20 +209,16 @@ const Checkout = () => {
       const deliveryAddress = selectedAddress
         ? `${selectedAddress.address}, ${selectedAddress.city} ${selectedAddress.postalCode}`
         : "";
-      
-      const deliveryPhone = selectedAddress?.phone || user.phone;
 
       // Create order
-      const { data: order, error: orderError } = await ordersService.createOrder({
-        userId: user.id,
-        items: orderItems,
-        total: finalTotal,
-        subtotal: totalPrice,
-        deliveryFee: deliveryFee,
-        deliveryAddress: deliveryAddress,
-        deliveryPhone: deliveryPhone,
-        paymentMethod: paymentMethod,
-      });
+      const { data: order, error: orderError } = await ordersService.createOrder(
+        user.id,
+        orderItems,
+        finalTotal,
+        deliveryAddress,
+        paymentMethod === "wallet"
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
+      );
 
       if (!orderError && order) {
         // Debit wallet if payment method is wallet
@@ -216,13 +226,18 @@ const Checkout = () => {
           await walletService.debitWallet(
             user.id,
             finalTotal,
-            order.id
+            `Order ${order.order_number}`
           );
         }
 
         clearCart();
+<<<<<<< HEAD
+        showSuccess("Order placed successfully!");
+        navigate(`/orders/${result.orderId}`);
+=======
         showSuccess("🎉 Order placed successfully!");
         navigate(`/orders/${order.id}`);
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
       } else {
         showError("Failed to place order");
       }
@@ -247,28 +262,11 @@ const Checkout = () => {
                 <MapPin className="h-5 w-5" />
                 <span>Delivery Address</span>
               </h2>
-              {/* Address Selection */}
-              <div className="space-y-3">
-                {addresses.map((addr) => (
-                  <div
-                    key={addr.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      selectedAddressId === addr.id ? "border-primary bg-primary/5" : "border-border"
-                    }`}
-                    onClick={() => setSelectedAddressId(addr.id)}
-                  >
-                    <div>
-                      <span className="capitalize font-medium">{addr.label}</span>
-                      {addr.isDefault && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Default</span>}
-                      <p className="text-sm text-muted-foreground">{addr.address}, {addr.city}</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 ${selectedAddressId === addr.id ? "bg-primary border-primary" : "border-input"}`}></div>
-                  </div>
-                ))}
+              <div className="p-4 rounded-lg border-2 border-primary bg-primary/5">
+                <p className="font-semibold">{user?.name}</p>
+                <p className="text-sm text-muted-foreground">{user?.address || "123 Main St, New Delhi"}</p>
+                <p className="text-sm text-muted-foreground mt-2">📱 {user?.phone}</p>
               </div>
-              <Button variant="link" onClick={() => navigate("/addresses")} className="mt-2 p-0">
-                Manage Addresses
-              </Button>
             </div>
 
             <div className="bg-card rounded-lg border border-border p-6 card-animate">
@@ -277,24 +275,25 @@ const Checkout = () => {
                 <span>Payment Method</span>
               </h2>
               <div className="space-y-3">
+<<<<<<< HEAD
+                {["wallet", "upi", "card", "cod"].map((method) => (
+=======
                 {[
-                  { id: "wallet", name: "Digital Wallet", description: `Balance: ${formatPrice(1500, lang)}`, emoji: "💰" },
+                  { id: "wallet", name: "Digital Wallet", description: `${formatPrice(1500, lang)} available`, emoji: "💰" },
                   { id: "upi", name: "UPI", description: "Google Pay, PhonePe, etc.", emoji: "📱" },
                   { id: "card", name: "Debit/Credit Card", description: "Visa, Mastercard, etc.", emoji: "💳" },
                   { id: "cod", name: "Cash on Delivery", description: "Pay when you receive", emoji: "🚚" },
                 ].map((method) => (
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
                   <div
-                    key={method.id}
+                    key={method}
                     className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      paymentMethod === method.id ? "border-primary bg-primary/5" : "border-border"
+                      paymentMethod === method ? "border-primary bg-primary/5" : "border-border"
                     }`}
-                    onClick={() => setPaymentMethod(method.id)}
+                    onClick={() => setPaymentMethod(method)}
                   >
-                    <div>
-                      <span className="capitalize font-medium flex items-center gap-2">{method.emoji} {method.name}</span>
-                      <p className="text-xs text-muted-foreground">{method.description}</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === method.id ? "bg-primary border-primary" : "border-input"}`}></div>
+                    <span className="capitalize font-medium">{method}</span>
+                    <div className={`w-5 h-5 rounded-full border-2 ${paymentMethod === method ? "bg-primary border-primary" : "border-input"}`}></div>
                   </div>
                 ))}
               </div>
@@ -302,6 +301,18 @@ const Checkout = () => {
           </div>
 
           <div>
+<<<<<<< HEAD
+            <div className="bg-card rounded-lg border border-border p-6 sticky top-20 shadow-lg card-animate">
+              <h2 className="text-2xl font-bold mb-4">Summary</h2>
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(totalPrice, i18n.language)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Delivery Fee</span>
+                  <span>{deliveryFee === 0 ? "FREE" : formatPrice(deliveryFee, i18n.language)}</span>
+=======
             <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-6 sticky top-20 shadow-lg card-animate">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <span className="emoji-bounce">📦</span> Order Summary
@@ -345,9 +356,16 @@ const Checkout = () => {
                       formatPrice(deliveryFee, lang)
                     )}
                   </span>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
                 </div>
                 <div className="border-t pt-2 flex justify-between font-bold text-lg text-primary">
                   <span>Total</span>
+<<<<<<< HEAD
+                  <span>{formatPrice(finalTotal, i18n.language)}</span>
+                </div>
+              </div>
+
+=======
                   <span className="text-primary text-lg">{formatPrice(finalTotal, lang)}</span>
                 </div>
               </div>
@@ -362,10 +380,11 @@ const Checkout = () => {
               )}
 
               {/* Place Order Button */}
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
               <Button
                 className="w-full py-6 text-lg font-bold"
                 onClick={handlePlaceOrder}
-                disabled={isPlacingOrder || addresses.length === 0}
+                disabled={isPlacingOrder}
               >
                 {isPlacingOrder ? "Processing..." : "Place Order"}
               </Button>

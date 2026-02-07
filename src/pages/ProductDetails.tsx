@@ -8,12 +8,18 @@ import { useLang } from "@/context/lang-context";
 import { formatPrice } from "@/utils/price";
 import { useCart } from "@/context/cart-context";
 import { useNavigate, useParams } from "react-router-dom";
+<<<<<<< HEAD
+import { apiService, Product } from "@/services/api";
+import { showError } from "@/utils/toast";
+import { useAuth } from "@/context/auth-context";
+import { useTranslation } from "react-i18next";
+import { formatPrice } from "@/utils/price-formatter";
+=======
 import { productsService } from "@/services/supabase/products";
 import { wishlistService } from "@/services/supabase/wishlist";
 import { useAuth } from "@/context/auth-context";
 import { showError } from "@/utils/toast";
 import ProductReviews from "@/components/product-reviews";
-import { useTranslation } from "react-i18next";
 
 interface Product {
   id: string;
@@ -23,28 +29,22 @@ interface Product {
   description_ar: string;
   price: number;
   discount_percentage: number;
-  is_in_stock: boolean;
+  in_stock: boolean;
   category_id: string;
   image_url: string;
-  weight: string;
-  origin: string;
-  freshness: string;
-  images: string[];
-  rating: number;
-  reviewsCount: number;
-  tags: string[];
-  discountedPrice: number;
-  originalPrice: number;
-  name: string;
-  description: string;
 }
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 const ProductDetails = () => {
   const { theme } = useTheme();
   const { lang } = useLang();
   const { addItem } = useCart();
-  const { t } = useTranslation();
+<<<<<<< HEAD
+  const { t, i18n } = useTranslation();
+  const { isAuthenticated } = useAuth();
+=======
   const { user } = useAuth();
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [quantity, setQuantity] = useState(1);
@@ -60,28 +60,11 @@ const ProductDetails = () => {
         setLoading(true);
         const { data: fetchedProduct, error } = await productsService.getProduct(id);
         if (!error && fetchedProduct) {
-          // Calculate derived properties and map to local Product interface
-          const discountedPrice = fetchedProduct.price * (1 - fetchedProduct.discount_percentage / 100);
-          const mappedProduct: Product = {
-            ...fetchedProduct,
-            name: lang === 'ar' ? fetchedProduct.name_ar : fetchedProduct.name_en,
-            description: lang === 'ar' ? fetchedProduct.description_ar : fetchedProduct.description_en,
-            images: fetchedProduct.images || [fetchedProduct.image_url || "/placeholder.svg"],
-            rating: fetchedProduct.reviews?.length ? fetchedProduct.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / fetchedProduct.reviews.length : 4.5,
-            reviewsCount: fetchedProduct.reviews?.length || 0,
-            tags: fetchedProduct.tags || [],
-            discountedPrice: discountedPrice,
-            originalPrice: fetchedProduct.price,
-            weight: fetchedProduct.weight || '1 kg',
-            origin: fetchedProduct.origin || 'Local',
-            freshness: fetchedProduct.freshness || 'Daily',
-          };
-          setProduct(mappedProduct);
-          
+          setProduct(fetchedProduct);
           // Check if wishlisted
           if (user) {
-            const { isInWishlist } = await wishlistService.isInWishlist(user.id, id);
-            setIsWishlisted(isInWishlist);
+            const { data: wishlisted } = await wishlistService.isInWishlist(user.id, id);
+            setIsWishlisted(wishlisted || false);
           }
         } else {
           showError("Product not found");
@@ -95,11 +78,15 @@ const ProductDetails = () => {
       }
     };
     fetchProduct();
-  }, [id, navigate, user, lang]);
+  }, [id, navigate, user]);
 
   const handleAddToCart = async () => {
-    if (!product || !user) return;
-    
+    if (!product) return;
+    if (!isAuthenticated) {
+      showError("Please log in to add items to your cart");
+      navigate("/login");
+      return;
+    }
     await addItem({
       id: product.id,
       name: product.name,
@@ -110,12 +97,16 @@ const ProductDetails = () => {
     navigate("/cart");
   };
 
+<<<<<<< HEAD
+  if (loading) return <div className="min-h-screen flex items-center justify-center animate-pulse text-4xl">⏳</div>;
+  if (!product) return null;
+=======
   const toggleWishlist = async () => {
-    if (!user || !product) {
+    if (!user) {
       showError("Please log in to use wishlist");
-      navigate("/login");
       return;
     }
+    if (!product) return;
 
     try {
       if (isWishlisted) {
@@ -168,6 +159,7 @@ const ProductDetails = () => {
       </div>
     );
   }
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -176,7 +168,7 @@ const ProductDetails = () => {
           <ArrowLeft className="h-4 w-4" /> {t('home')}
         </Button>
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleWishlist}>
+          <Button variant="ghost" size="icon" onClick={() => setIsWishlisted(!isWishlisted)}>
             <Heart className={isWishlisted ? "fill-destructive text-destructive" : ""} />
           </Button>
           <Button variant="ghost" size="icon"><Share2 className="h-4 w-4" /></Button>
@@ -189,9 +181,10 @@ const ProductDetails = () => {
             <div className="relative rounded-xl overflow-hidden aspect-square border border-border">
               <img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
               <div className="absolute top-4 right-4 bg-destructive text-white text-xs font-bold px-2 py-1 rounded">
-                {product.discount_percentage}% {t('off')}
+                {product.discountPercent}% {t('off')}
               </div>
             </div>
+<<<<<<< HEAD
             <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
               {product.images.map((img, idx) => (
                 <img
@@ -201,8 +194,7 @@ const ProductDetails = () => {
                   className={`w-20 h-20 object-cover rounded-lg cursor-pointer border-2 ${selectedImage === idx ? 'border-primary' : 'border-transparent'}`}
                   onClick={() => setSelectedImage(idx)}
                 />
-              ))}
-            </div>
+=======
 
             {/* Price Section */}
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800 card-animate" style={{ animationDelay: "50ms" }}>
@@ -221,19 +213,26 @@ const ProductDetails = () => {
                 <span key={index} className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full font-medium">
                   <span className="emoji-bounce">#</span> {tag}
                 </span>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
               ))}
             </div>
           </div>
 
           <div className="flex flex-col">
-            <h1 className="text-3xl font-bold mb-2">{lang === 'ar' ? product.name_ar : product.name_en}</h1>
+            <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
             <div className="flex items-center gap-2 mb-4">
               <div className="flex items-center bg-primary/10 text-primary px-2 py-1 rounded text-sm font-bold">
-                <Star className="h-3 w-3 fill-current mr-1" /> {product.rating.toFixed(1)}
+                <Star className="h-3 w-3 fill-current mr-1" /> {product.rating}
               </div>
               <span className="text-muted-foreground text-sm">({product.reviewsCount} reviews)</span>
             </div>
 
+<<<<<<< HEAD
+            <div className="mb-6">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-primary">{formatPrice(product.discountedPrice, i18n.language)}</span>
+                <span className="text-muted-foreground line-through">{formatPrice(product.originalPrice, i18n.language)}</span>
+=======
             {/* Info Cards */}
             <div className="space-y-3">
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
@@ -241,11 +240,12 @@ const ProductDetails = () => {
                   <span>🚚</span> Free Delivery
                 </p>
                 <p className="text-xs text-green-700 dark:text-green-400 mt-1">Orders above {formatPrice(500, lang)}</p>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
               </div>
               <p className="text-xs text-muted-foreground mt-1">Inclusive of all taxes • {product.weight}</p>
             </div>
 
-            <p className="text-muted-foreground mb-8 leading-relaxed">{lang === 'ar' ? product.description_ar : product.description_en}</p>
+            <p className="text-muted-foreground mb-8 leading-relaxed">{product.description}</p>
 
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="bg-muted/30 p-3 rounded-lg border border-border">
@@ -267,24 +267,28 @@ const ProductDetails = () => {
                   <button className="px-4 py-2 hover:bg-muted" onClick={() => setQuantity(quantity + 1)}>+</button>
                 </div>
               </div>
-              <Button className="w-full py-6 text-lg font-bold gap-2" onClick={handleAddToCart} disabled={!product.is_in_stock}>
+              <Button className="w-full py-6 text-lg font-bold gap-2" onClick={handleAddToCart} disabled={!product.isInStock}>
                 <ShoppingCart className="h-5 w-5" /> {t('addToCart')}
               </Button>
             </div>
           </div>
         </div>
+<<<<<<< HEAD
+      </main>
+=======
 
         {/* Product Reviews Section */}
         {product && (
           <div className="mt-12 border-t border-border pt-12">
             <ProductReviews
               productId={product.id}
-              productName={lang === 'ar' ? product.name_ar : product.name_en}
+              productName={product[`name_${lang}`]}
               productPrice={product.price}
             />
           </div>
         )}
-      </main>
+      </div>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     </div>
   );
 };

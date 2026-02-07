@@ -8,8 +8,6 @@ import { useLang } from "@/context/lang-context";
 import { useAuth } from "@/context/auth-context";
 import { formatPrice } from "@/utils/price";
 import { showError, showSuccess } from "@/utils/toast";
-import { reviewsService } from "@/services/supabase/reviews";
-import { authService } from "@/services/supabase/auth";
 
 interface Review {
   id: string;
@@ -56,30 +54,57 @@ const ProductReviews = ({ productId, productName, productPrice }: ProductReviews
 
   useEffect(() => {
     fetchReviews();
-  }, [productId, filterRating, sortBy, lang]);
+  }, [productId, filterRating, sortBy]);
 
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      
-      const [reviewsData, statsData] = await Promise.all([
-        reviewsService.getProductReviews(productId),
-        reviewsService.getReviewStats(productId)
-      ]);
-
-      // Fetch user names for reviews (optional, depending on RLS setup)
-      const reviewsWithNames = await Promise.all(reviewsData.map(async (review: any) => {
-        // In a real app, we'd join this in the DB query, but for simplicity here:
-        const { data: profile } = await authService.getUserProfile(review.user_id);
-        return {
-          ...review,
-          user_name: profile?.name || "Anonymous User"
-        } as Review;
-      }));
+      // Mock data - in production would fetch from Supabase
+      const mockReviews: Review[] = [
+        {
+          id: "1",
+          user_id: "user1",
+          product_id: productId,
+          rating: 5,
+          title: lang === "ar" ? "منتج رائع جداً!" : "Excellent product!",
+          comment: lang === "ar" 
+            ? "جودة عالية جداً وسعر منافس. توصيل سريع وآمن."
+            : "High quality and good price. Fast and safe delivery.",
+          helpful_count: 12,
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          user_name: "Ahmed"
+        },
+        {
+          id: "2",
+          user_id: "user2",
+          product_id: productId,
+          rating: 4,
+          title: lang === "ar" ? "جيد جداً" : "Very good",
+          comment: lang === "ar"
+            ? "المنتج يطابق الوصف. أنصح به بشدة."
+            : "Product matches description. Highly recommended.",
+          helpful_count: 8,
+          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          user_name: "Fatima"
+        },
+        {
+          id: "3",
+          user_id: "user3",
+          product_id: productId,
+          rating: 3,
+          title: lang === "ar" ? "مقبول" : "Acceptable",
+          comment: lang === "ar"
+            ? "المنتج جيد لكن التغليف يحتاج تحسين."
+            : "Good product but packaging needs improvement.",
+          helpful_count: 4,
+          created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          user_name: "Mohammed"
+        }
+      ];
 
       const filtered = filterRating > 0 
-        ? reviewsWithNames.filter(r => r.rating === filterRating)
-        : reviewsWithNames;
+        ? mockReviews.filter(r => r.rating === filterRating)
+        : mockReviews;
 
       const sorted = filtered.sort((a, b) => {
         if (sortBy === "helpful") {
@@ -89,8 +114,22 @@ const ProductReviews = ({ productId, productName, productPrice }: ProductReviews
       });
 
       setReviews(sorted);
-      setStats(statsData);
 
+      // Calculate stats
+      const avgRating = mockReviews.length > 0
+        ? mockReviews.reduce((sum, r) => sum + r.rating, 0) / mockReviews.length
+        : 0;
+
+      const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      mockReviews.forEach(r => {
+        distribution[r.rating]++;
+      });
+
+      setStats({
+        average_rating: avgRating,
+        total_reviews: mockReviews.length,
+        rating_distribution: distribution
+      });
     } catch (err) {
       console.error("Error fetching reviews:", err);
       showError("Failed to load reviews");
@@ -107,25 +146,27 @@ const ProductReviews = ({ productId, productName, productPrice }: ProductReviews
       return;
     }
 
-    if (!formData.title.trim() || !formData.comment.trim() || formData.rating < 1) {
+    if (!formData.title.trim() || !formData.comment.trim()) {
       showError(lang === "ar" ? "يرجى ملء جميع الحقول" : "Please fill all fields");
       return;
     }
 
     try {
       setSubmitting(true);
-      
-      await reviewsService.createReview({
+      // In production, would submit to Supabase
+      const newReview: Review = {
+        id: Date.now().toString(),
         user_id: user.id,
         product_id: productId,
         rating: formData.rating,
         title: formData.title,
         comment: formData.comment,
-      });
+        helpful_count: 0,
+        created_at: new Date().toISOString(),
+        user_name: user.name || "Anonymous"
+      };
 
-      // Refresh reviews to include the new one
-      await fetchReviews();
-      
+      setReviews([newReview, ...reviews]);
       setFormData({ rating: 5, title: "", comment: "" });
       setShowReviewForm(false);
       showSuccess(lang === "ar" ? "شكراً على تقييمك!" : "Thank you for your review!");
@@ -143,12 +184,14 @@ const ProductReviews = ({ productId, productName, productPrice }: ProductReviews
     return (
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
-          <span
+          <button
             key={star}
+            type={interactive ? "button" : "div"}
             onClick={() => interactive && onChange(star)}
             onMouseEnter={() => interactive && setHoverRating(star)}
             onMouseLeave={() => interactive && setHoverRating(0)}
             className={`transition-all ${interactive ? "cursor-pointer" : "cursor-default"}`}
+            disabled={!interactive}
           >
             <Star
               className={`${
@@ -159,7 +202,7 @@ const ProductReviews = ({ productId, productName, productPrice }: ProductReviews
                   : "text-gray-300"
               }`}
             />
-          </span>
+          </button>
         ))}
       </div>
     );
@@ -393,7 +436,6 @@ const ProductReviews = ({ productId, productName, productPrice }: ProductReviews
                   variant="outline"
                   size="sm"
                   className="gap-2"
-                  onClick={() => reviewsService.markReviewHelpful(review.id)}
                 >
                   <ThumbsUp className="h-4 w-4" />
                   {lang === "ar" ? "مفيد" : "Helpful"} ({review.helpful_count})
