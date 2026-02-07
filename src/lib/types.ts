@@ -60,6 +60,13 @@ export interface Order {
   deliveryTime: string;
 }
 
+export interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 export interface WalletTransaction {
   id: number;
   type: "credit" | "debit";
@@ -71,4 +78,19 @@ export interface WalletTransaction {
 export interface WalletData {
   balance: number;
   transactions: WalletTransaction[];
+}
+
+export interface AppError extends Error {
+  code?: string;
+  status?: number;
+  details?: Record<string, unknown>;
+}
+
+export interface ProductFilters {
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sortBy?: 'price' | 'rating' | 'popularity' | 'newest';
+  sortOrder?: 'asc' | 'desc';
 }
