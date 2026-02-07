@@ -7,13 +7,12 @@ export default defineConfig(() => ({
   server: {
     host: "::",
     port: 8080,
-    // Add security headers for development
     headers: {
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "DENY",
       "X-XSS-Protection": "1; mode=block",
       "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;"
+      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.unsplash.com https://*.supabase.co; font-src 'self' data:; connect-src 'self' https://dtuagfxysqmdprriyxzs.supabase.co https://api.stripe.com;"
     }
   },
   plugins: [
@@ -26,7 +25,6 @@ export default defineConfig(() => ({
     },
   },
   envPrefix: 'VITE_',
-  // Add security headers for production build
   build: {
     rollupOptions: {
       output: {
