@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Moon, Sun, ShoppingCart, Home, Wallet, FolderOpen, ClipboardList, Gift, User } from "lucide-react";
+import { Moon, Sun, ShoppingCart, Home, Wallet, FolderOpen, ClipboardList, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/context/cart-context";
@@ -14,12 +14,12 @@ import LanguageToggle from "@/components/language-toggle";
 import ProductCard from "@/components/product-card";
 import CategoryCard from "@/components/category-card";
 import OfferBanner from "@/components/offer-banner";
+import { Header } from "@/components/header";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
   const { theme, toggleTheme } = useTheme();
   const { getTotalItems } = useCart();
-  const { isAuthenticated, logout } = useAuth();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const cartCount = getTotalItems();
@@ -32,54 +32,40 @@ const Index = () => {
   ];
 
   const categories = [
-    { id: 1, name: t('category'), icon: "🍎" },
-    { id: 2, name: t('category'), icon: "🥬" },
-    { id: 3, name: t('category'), icon: "🍿" },
-    { id: 4, name: t('category'), icon: "🎁" }
+    { id: 1, name: t('category'), icon: "🍎", itemCount: 45 },
+    { id: 2, name: t('category'), icon: "🥬", itemCount: 38 },
+    { id: 3, name: t('category'), icon: "🍿", itemCount: 22 },
+    { id: 4, name: t('category'), icon: "🎁", itemCount: 16 }
   ];
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-10 bg-background border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
-              <div className="bg-primary w-8 h-8 rounded-full"></div>
-              <h1 className="text-xl font-bold">FreshCart</h1>
-            </div>
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
-              <LanguageToggle />
-              <Button variant="ghost" size="icon" onClick={toggleTheme}>
-                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </Button>
-              <div className="relative">
-                <Button variant="ghost" size="icon" onClick={() => navigate("/cart")}>
-                  <ShoppingCart className="h-5 w-5" />
-                </Button>
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
-                    {cartCount > 9 ? '9+' : cartCount}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="mt-3">
-            <SearchBar onSearch={(q) => q && navigate(`/search?q=${q}`)} />
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-grow container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-1">{t('welcome')}</h2>
-          <p className="text-muted-foreground text-sm">{t('heroSub')}</p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold mb-1">{t('welcome')}</h2>
+            <p className="text-muted-foreground text-sm">{t('heroSub')}</p>
+          </div>
+          <div className="flex gap-2">
+            <LanguageToggle />
+            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
 
-        <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl p-6 mb-8 text-white shadow-lg">
-          <h3 className="text-2xl font-bold mb-2">{t('heroTitle')}</h3>
+        <div className="mb-6">
+          <SearchBar onSearch={(q) => q && navigate(`/search?q=${q}`)} />
+        </div>
+
+        <div className="bg-gradient-to-r from-primary to-primary/80 rounded-xl p-8 mb-8 text-white shadow-lg">
+          <h3 className="text-3xl font-bold mb-2">{t('heroTitle')}</h3>
           <p className="mb-4 text-primary-foreground/90">{t('heroSub')}</p>
-          <Button variant="secondary" className="font-bold">{t('shopNow')}</Button>
+          <Button variant="secondary" className="font-bold" onClick={() => navigate("/categories")}>
+            {t('shopNow')}
+          </Button>
         </div>
 
         <CartPreview />
@@ -91,7 +77,13 @@ const Index = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map((c) => (
-              <CategoryCard key={c.id} name={c.name} icon={c.icon} onClick={() => navigate("/categories")} />
+              <CategoryCard 
+                key={c.id} 
+                name={c.name} 
+                icon={c.icon} 
+                itemCount={c.itemCount}
+                onClick={() => navigate("/categories")} 
+              />
             ))}
           </div>
         </section>
@@ -122,7 +114,7 @@ const Index = () => {
         </section>
       </main>
 
-      <nav className="sticky bottom-0 bg-background border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+      <nav className="sticky bottom-0 bg-background border-t border-border shadow-lg">
         <div className="container mx-auto px-2">
           <div className="flex justify-around py-1">
             {[
@@ -135,7 +127,7 @@ const Index = () => {
               <Button
                 key={index}
                 variant="ghost"
-                className="flex flex-col items-center justify-center h-14 w-full px-1"
+                className="flex flex-col items-center justify-center h-14 w-full px-1 hover:bg-muted"
                 onClick={() => navigate(item.path)}
               >
                 <item.icon className="h-5 w-5" />

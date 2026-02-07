@@ -2,7 +2,6 @@
 
 import { addCSRFProtection } from "@/utils/csrf";
 
-// Mock API service to simulate server-side operations
 export interface Product {
   id: string;
   name: string;
@@ -27,6 +26,7 @@ export interface User {
   email: string;
   phone: string;
   address: string;
+  avatar?: string;
 }
 
 export interface CartItem {
@@ -67,7 +67,6 @@ export interface Order {
   deliveryTime: string;
 }
 
-// Mock data (Authority)
 const mockProducts: Product[] = [
   {
     id: "1",
@@ -78,7 +77,7 @@ const mockProducts: Product[] = [
     discountedPrice: 129,
     discountPercent: 35,
     isInStock: true,
-    images: ["/placeholder.svg", "/placeholder.svg", "/placeholder.svg"],
+    images: ["/placeholder.svg"],
     tags: ["Organic", "Local", "Fresh"],
     rating: 4.5,
     reviewsCount: 128,
@@ -151,41 +150,29 @@ const mockWalletData: WalletData = {
   balance: 1500,
   transactions: [
     { id: 1, type: "credit", amount: 2000, description: "Wallet recharge", date: "2023-05-15" },
-    { id: 2, type: "debit", amount: 450, description: "Order payment", date: "2023-05-10" },
-    { id: 3, type: "credit", amount: 500, description: "Referral bonus", date: "2023-05-05" }
+    { id: 2, type: "debit", amount: 450, description: "Order payment", date: "2023-05-10" }
   ]
 };
 
 const mockOrders: Order[] = [
-  { id: "ORD-001", date: "2023-05-15", status: "Delivered", total: 450, items: 5, deliveryTime: "06:30 PM" },
-  { id: "ORD-002", date: "2023-05-10", status: "Out for delivery", total: 320, items: 3, deliveryTime: "05:45 PM" },
-  { id: "ORD-003", date: "2023-05-05", status: "Confirmed", total: 780, items: 8, deliveryTime: "07:00 PM" }
+  { id: "ORD-001", date: "2023-05-15", status: "Delivered", total: 450, items: 5, deliveryTime: "06:30 PM" }
 ];
 
-// Helper to simulate a secure network call with CSRF protection
-const secureRequest = async <T>(callback: () => T, options: RequestInit = {}): Promise<T> => {
-  // Apply CSRF headers - this would normally be sent to the server
-  const protectedOptions = addCSRFProtection(options);
-  
-  // Validate that the required security header is present
-  if (!protectedOptions.headers || !protectedOptions.headers['X-Requested-With']) {
-    throw new Error("CSRF Protection Error: Missing security headers");
-  }
+let inMemorySessionActive = false;
 
-  // Simulate network latency
+const secureRequest = async <T>(callback: () => T, options: RequestInit = {}): Promise<T> => {
+  const protectedOptions = addCSRFProtection(options);
+  if (!protectedOptions.headers || !protectedOptions.headers['X-Requested-With']) {
+    throw new Error("CSRF Protection Error");
+  }
   await new Promise(resolve => setTimeout(resolve, 300));
   return callback();
 };
 
-// Memory-only session state (simulating HttpOnly cookie persistence)
-// In a real app, this would be handled entirely by the server via cookies
-let inMemorySessionActive = false;
-
-// Mock API functions
 export const apiService = {
   login: async (email: string, password: string): Promise<boolean> => {
     return secureRequest(() => {
-      if (email === "user@example.com" && password === "password") {
+      if (email === "demo@example.com" && password === "demo123") {
         inMemorySessionActive = true;
         return true;
       }
@@ -199,10 +186,6 @@ export const apiService = {
     }, { method: 'POST' });
   },
 
-  isAuthenticated: async (): Promise<boolean> => {
-    return secureRequest(() => inMemorySessionActive);
-  },
-
   getMe: async (): Promise<User | null> => {
     return secureRequest(() => {
       if (!inMemorySessionActive) return null;
@@ -211,112 +194,53 @@ export const apiService = {
   },
 
   getProduct: async (id: string): Promise<Product | null> => {
-    return secureRequest(() => {
-      const product = mockProducts.find(p => p.id === id);
-      return product || null;
-    });
+    return secureRequest(() => mockProducts.find(p => p.id === id) || null);
   },
   
   getProducts: async (): Promise<Product[]> => {
     return secureRequest(() => [...mockProducts]);
   },
   
-  getWalletData: async (): Promise<WalletData | null> => {
-    return secureRequest(() => {
-      if (!inMemorySessionActive) return null;
-      return { ...mockWalletData };
-    });
+  getWalletData: async (): Promise<WalletData> => {
+    return secureRequest(() => ({ ...mockWalletData }));
   },
   
   rechargeWallet: async (amount: number): Promise<{ success: boolean; newBalance: number }> => {
     return secureRequest(() => {
-      if (!inMemorySessionActive) return { success: false, newBalance: 0 };
-      
-      const newBalance = mockWalletData.balance + amount;
-      mockWalletData.balance = newBalance;
-      
-      const newTransaction: WalletTransaction = {
-        id: mockWalletData.transactions.length + 1,
+      mockWalletData.balance += amount;
+      mockWalletData.transactions.unshift({
+        id: Date.now(),
         type: "credit",
         amount,
         description: "Wallet recharge",
         date: new Date().toISOString().split('T')[0]
-      };
-      
-      mockWalletData.transactions.unshift(newTransaction);
-      return { success: true, newBalance };
+      });
+      return { success: true, newBalance: mockWalletData.balance };
     }, { method: 'POST' });
   },
   
-  getCartItems: async (): Promise<CartItem[]> => {
-    return secureRequest(() => []);
-  },
-  
-  addToCart: async (item: Omit<CartItem, "quantity">): Promise<{ success: boolean }> => {
-    return secureRequest(() => ({ success: true }), { method: 'POST' });
-  },
-  
-  updateCartItem: async (id: string, quantity: number): Promise<{ success: boolean }> => {
-    return secureRequest(() => ({ success: true }), { method: 'PUT' });
-  },
-  
-  removeFromCart: async (id: string): Promise<{ success: boolean }> => {
-    return secureRequest(() => ({ success: true }), { method: 'DELETE' });
-  },
-  
   getOrders: async (): Promise<Order[]> => {
-    return secureRequest(() => {
-      if (!inMemorySessionActive) return [];
-      return [...mockOrders];
-    });
+    return secureRequest(() => [...mockOrders]);
   },
   
-  placeOrder: async (items: OrderItem[]): Promise<{ success: boolean; orderId: string }> => {
+  placeOrder: async (items: OrderItem[], total: number): Promise<{ success: boolean; orderId: string }> => {
     return secureRequest(() => {
-      if (!inMemorySessionActive) return { success: false, orderId: "" };
-      
-      let calculatedTotal = 0;
-      let itemCount = 0;
-
-      for (const item of items) {
-        const dbProduct = mockProducts.find(p => p.id === item.id);
-        if (dbProduct && dbProduct.isInStock) {
-          calculatedTotal += dbProduct.discountedPrice * item.quantity;
-          itemCount += item.quantity;
-        } else if (!dbProduct) {
-          throw new Error(`Invalid product ID: ${item.id}`);
-        }
-      }
-
-      const deliveryFee = calculatedTotal >= 500 ? 0 : 30;
-      const finalTotal = calculatedTotal + deliveryFee;
-
-      if (mockWalletData.balance < finalTotal) {
-        throw new Error("Insufficient wallet balance");
-      }
-
-      mockWalletData.balance -= finalTotal;
-      mockWalletData.transactions.unshift({
-        id: mockWalletData.transactions.length + 1,
-        type: "debit",
-        amount: finalTotal,
-        description: "Order payment",
-        date: new Date().toISOString().split('T')[0]
-      });
-
-      const orderId = `ORD-${String(mockOrders.length + 1).padStart(3, '0')}`;
-      
+      const orderId = `ORD-${Math.floor(Math.random() * 1000)}`;
       const newOrder: Order = {
         id: orderId,
         date: new Date().toISOString().split('T')[0],
         status: "Confirmed",
-        total: finalTotal,
-        items: itemCount,
+        total,
+        items: items.length,
         deliveryTime: "06:00 PM"
       };
-      
       mockOrders.unshift(newOrder);
       return { success: true, orderId };
     }, { method: 'POST' });
-  }
+  },
+
+  addToCart: async (item: any) => ({ success: true }),
+  removeFromCart: async (id: string) => ({ success: true }),
+  updateCartItem: async (id: string, qty: number) => ({ success: true }),
+  getCartItems: async () => []
 };
