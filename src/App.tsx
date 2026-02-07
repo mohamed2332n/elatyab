@@ -28,22 +28,8 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-5xl animate-spin mb-4">⏳</div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return children;
 };
 
@@ -56,55 +42,12 @@ const AppRoutes = () => (
     <Route path="/categories" element={<Categories />} />
     <Route path="/offers" element={<Offers />} />
     <Route path="/product/:id" element={<ProductDetails />} />
-    
-    <Route 
-      path="/cart" 
-      element={
-        <ProtectedRoute>
-          <Cart />
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/checkout" 
-      element={
-        <ProtectedRoute>
-          <Checkout />
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/wallet" 
-      element={
-        <ProtectedRoute>
-          <Wallet />
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/orders" 
-      element={
-        <ProtectedRoute>
-          <Orders />
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/orders/:orderId" 
-      element={
-        <ProtectedRoute>
-          <OrderDetails />
-        </ProtectedRoute>
-      } 
-    />
-    <Route 
-      path="/profile" 
-      element={
-        <ProtectedRoute>
-          <Profile />
-        </ProtectedRoute>
-      } 
-    />
+    <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+    <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+    <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
+    <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+    <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+    <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
