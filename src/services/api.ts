@@ -1,8 +1,8 @@
 "use client";
 
-// Mock API service to simulate server-side operations
-// In a real application, this would make actual HTTP requests to a backend
+import { addCSRFProtection } from "@/utils/csrf";
 
+// Mock API service to simulate server-side operations
 export interface Product {
   id: string;
   name: string;
@@ -162,141 +162,161 @@ const mockOrders: Order[] = [
   { id: "ORD-003", date: "2023-05-05", status: "Confirmed", total: 780, items: 8, deliveryTime: "07:00 PM" }
 ];
 
-// Mock session check
-const isAuthenticated = () => {
-  return !!localStorage.getItem("session_token");
+// Helper to simulate a secure network call with CSRF protection
+const secureRequest = async <T>(callback: () => T, options: RequestInit = {}): Promise<T> => {
+  // Apply CSRF headers - this would normally be sent to the server
+  const protectedOptions = addCSRFProtection(options);
+  
+  // Validate that the required security header is present
+  if (!protectedOptions.headers || !protectedOptions.headers['X-Requested-With']) {
+    throw new Error("CSRF Protection Error: Missing security headers");
+  }
+
+  // Simulate network latency
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return callback();
 };
+
+// Memory-only session state (simulating HttpOnly cookie persistence)
+// In a real app, this would be handled entirely by the server via cookies
+let inMemorySessionActive = false;
 
 // Mock API functions
 export const apiService = {
-  // Get current user profile (Secure: Fetches based on session token)
-  getMe: async (): Promise<User | null> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    if (!isAuthenticated()) return null;
-    return mockUserData;
-  },
-
-  // Get product by ID (server-side validated)
-  getProduct: async (id: string): Promise<Product | null> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const product = mockProducts.find(p => p.id === id);
-    return product || null;
-  },
-  
-  // Get all products (server-side validated)
-  getProducts: async (): Promise<Product[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockProducts;
-  },
-  
-  // Get wallet data (server-side validated)
-  getWalletData: async (): Promise<WalletData | null> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    if (!isAuthenticated()) return null;
-    return mockWalletData;
-  },
-  
-  // Recharge wallet (server-side validated)
-  rechargeWallet: async (amount: number): Promise<{ success: boolean; newBalance: number }> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    if (!isAuthenticated()) return { success: false, newBalance: 0 };
-    
-    const newBalance = mockWalletData.balance + amount;
-    mockWalletData.balance = newBalance;
-    
-    const newTransaction: WalletTransaction = {
-      id: mockWalletData.transactions.length + 1,
-      type: "credit",
-      amount,
-      description: "Wallet recharge",
-      date: new Date().toISOString().split('T')[0]
-    };
-    
-    mockWalletData.transactions.unshift(newTransaction);
-    return { success: true, newBalance };
-  },
-  
-  // Get cart items (server-side validated)
-  getCartItems: async (): Promise<CartItem[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return [];
-  },
-  
-  // Add item to cart (server-side validated)
-  addToCart: async (item: Omit<CartItem, "quantity">): Promise<{ success: boolean }> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return { success: true };
-  },
-  
-  // Update cart item quantity (server-side validated)
-  updateCartItem: async (id: string, quantity: number): Promise<{ success: boolean }> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return { success: true };
-  },
-  
-  // Remove item from cart (server-side validated)
-  removeFromCart: async (id: string): Promise<{ success: boolean }> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return { success: true };
-  },
-  
-  // Get orders (server-side validated)
-  getOrders: async (): Promise<Order[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    if (!isAuthenticated()) return [];
-    return mockOrders;
-  },
-  
-  // Place order (Secure: Total calculation happens here, not trusting client)
-  placeOrder: async (items: OrderItem[]): Promise<{ success: boolean; orderId: string }> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    if (!isAuthenticated()) return { success: false, orderId: "" };
-    
-    // SERVER-SIDE CALCULATION: Recalculate total using official prices
-    let calculatedTotal = 0;
-    let itemCount = 0;
-
-    for (const item of items) {
-      const dbProduct = mockProducts.find(p => p.id === item.id);
-      if (dbProduct && dbProduct.isInStock) {
-        calculatedTotal += dbProduct.discountedPrice * item.quantity;
-        itemCount += item.quantity;
-      } else if (!dbProduct) {
-        throw new Error(`Invalid product ID: ${item.id}`);
+  login: async (email: string, password: string): Promise<boolean> => {
+    return secureRequest(() => {
+      if (email === "user@example.com" && password === "password") {
+        inMemorySessionActive = true;
+        return true;
       }
-    }
+      return false;
+    }, { method: 'POST' });
+  },
 
-    // Apply delivery fee logic on server
-    const deliveryFee = calculatedTotal >= 500 ? 0 : 30;
-    const finalTotal = calculatedTotal + deliveryFee;
+  logout: async (): Promise<void> => {
+    return secureRequest(() => {
+      inMemorySessionActive = false;
+    }, { method: 'POST' });
+  },
 
-    // Check wallet balance on server
-    if (mockWalletData.balance < finalTotal) {
-      throw new Error("Insufficient wallet balance");
-    }
+  isAuthenticated: async (): Promise<boolean> => {
+    return secureRequest(() => inMemorySessionActive);
+  },
 
-    // Deduct from wallet
-    mockWalletData.balance -= finalTotal;
-    mockWalletData.transactions.unshift({
-      id: mockWalletData.transactions.length + 1,
-      type: "debit",
-      amount: finalTotal,
-      description: "Order payment",
-      date: new Date().toISOString().split('T')[0]
+  getMe: async (): Promise<User | null> => {
+    return secureRequest(() => {
+      if (!inMemorySessionActive) return null;
+      return { ...mockUserData };
     });
+  },
 
-    const orderId = `ORD-${String(mockOrders.length + 1).padStart(3, '0')}`;
-    
-    const newOrder: Order = {
-      id: orderId,
-      date: new Date().toISOString().split('T')[0],
-      status: "Confirmed",
-      total: finalTotal,
-      items: itemCount,
-      deliveryTime: "06:00 PM"
-    };
-    
-    mockOrders.unshift(newOrder);
-    return { success: true, orderId };
+  getProduct: async (id: string): Promise<Product | null> => {
+    return secureRequest(() => {
+      const product = mockProducts.find(p => p.id === id);
+      return product || null;
+    });
+  },
+  
+  getProducts: async (): Promise<Product[]> => {
+    return secureRequest(() => [...mockProducts]);
+  },
+  
+  getWalletData: async (): Promise<WalletData | null> => {
+    return secureRequest(() => {
+      if (!inMemorySessionActive) return null;
+      return { ...mockWalletData };
+    });
+  },
+  
+  rechargeWallet: async (amount: number): Promise<{ success: boolean; newBalance: number }> => {
+    return secureRequest(() => {
+      if (!inMemorySessionActive) return { success: false, newBalance: 0 };
+      
+      const newBalance = mockWalletData.balance + amount;
+      mockWalletData.balance = newBalance;
+      
+      const newTransaction: WalletTransaction = {
+        id: mockWalletData.transactions.length + 1,
+        type: "credit",
+        amount,
+        description: "Wallet recharge",
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      mockWalletData.transactions.unshift(newTransaction);
+      return { success: true, newBalance };
+    }, { method: 'POST' });
+  },
+  
+  getCartItems: async (): Promise<CartItem[]> => {
+    return secureRequest(() => []);
+  },
+  
+  addToCart: async (item: Omit<CartItem, "quantity">): Promise<{ success: boolean }> => {
+    return secureRequest(() => ({ success: true }), { method: 'POST' });
+  },
+  
+  updateCartItem: async (id: string, quantity: number): Promise<{ success: boolean }> => {
+    return secureRequest(() => ({ success: true }), { method: 'PUT' });
+  },
+  
+  removeFromCart: async (id: string): Promise<{ success: boolean }> => {
+    return secureRequest(() => ({ success: true }), { method: 'DELETE' });
+  },
+  
+  getOrders: async (): Promise<Order[]> => {
+    return secureRequest(() => {
+      if (!inMemorySessionActive) return [];
+      return [...mockOrders];
+    });
+  },
+  
+  placeOrder: async (items: OrderItem[]): Promise<{ success: boolean; orderId: string }> => {
+    return secureRequest(() => {
+      if (!inMemorySessionActive) return { success: false, orderId: "" };
+      
+      let calculatedTotal = 0;
+      let itemCount = 0;
+
+      for (const item of items) {
+        const dbProduct = mockProducts.find(p => p.id === item.id);
+        if (dbProduct && dbProduct.isInStock) {
+          calculatedTotal += dbProduct.discountedPrice * item.quantity;
+          itemCount += item.quantity;
+        } else if (!dbProduct) {
+          throw new Error(`Invalid product ID: ${item.id}`);
+        }
+      }
+
+      const deliveryFee = calculatedTotal >= 500 ? 0 : 30;
+      const finalTotal = calculatedTotal + deliveryFee;
+
+      if (mockWalletData.balance < finalTotal) {
+        throw new Error("Insufficient wallet balance");
+      }
+
+      mockWalletData.balance -= finalTotal;
+      mockWalletData.transactions.unshift({
+        id: mockWalletData.transactions.length + 1,
+        type: "debit",
+        amount: finalTotal,
+        description: "Order payment",
+        date: new Date().toISOString().split('T')[0]
+      });
+
+      const orderId = `ORD-${String(mockOrders.length + 1).padStart(3, '0')}`;
+      
+      const newOrder: Order = {
+        id: orderId,
+        date: new Date().toISOString().split('T')[0],
+        status: "Confirmed",
+        total: finalTotal,
+        items: itemCount,
+        deliveryTime: "06:00 PM"
+      };
+      
+      mockOrders.unshift(newOrder);
+      return { success: true, orderId };
+    }, { method: 'POST' });
   }
 };

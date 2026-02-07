@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -21,21 +21,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // SECURE: Check for an opaque token, NOT the full PII object
-        const token = localStorage.getItem("session_token");
-        if (token) {
-          // SECURE: Validate session with server and fetch fresh profile data
-          const userData = await apiService.getMe();
-          if (userData) {
-            setUser(userData);
-          } else {
-            // Invalid token
-            localStorage.removeItem("session_token");
-          }
+        // We no longer read tokens from localStorage.
+        // The server (mocked apiService) tracks the session via in-memory state
+        // (which represents HttpOnly cookies in a real app).
+        const userData = await apiService.getMe();
+        if (userData) {
+          setUser(userData);
         }
       } catch (error) {
-        console.error("Error checking authentication:", error);
-        localStorage.removeItem("session_token");
+        console.error("Authentication verification failed:", error);
       } finally {
         setLoading(false);
       }
@@ -46,13 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Simulate authentication request
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const success = await apiService.login(email, password);
       
-      if (email === "user@example.com" && password === "password") {
-        // SECURE: Store only an opaque session token
-        localStorage.setItem("session_token", "mock_secure_jwt_token_12345");
-        
+      if (success) {
         // Fetch fresh profile data to keep in memory
         const userData = await apiService.getMe();
         setUser(userData);
@@ -65,9 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("session_token");
-    setUser(null);
+  const logout = async () => {
+    try {
+      await apiService.logout();
+    } finally {
+      setUser(null);
+    }
   };
 
   return (

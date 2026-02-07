@@ -7,7 +7,6 @@ import { getEnvVariable } from "@/lib/env";
 const validateEnvVariables = () => {
   const requiredVars = [
     // Add any required VITE_ prefixed environment variables here
-    // Example: 'VITE_API_URL'
   ];
   const missingVars = requiredVars.filter(
     (varName) => {
@@ -36,24 +35,8 @@ if (import.meta.env.DEV) {
   validateEnvVariables();
 }
 
-// Add security headers
-const addSecurityHeaders = () => {
-  const metaTags = [
-    { name: "X-Content-Type-Options", content: "nosniff" },
-    { name: "X-Frame-Options", content: "DENY" },
-    { name: "X-XSS-Protection", content: "1; mode=block" },
-    { name: "Referrer-Policy", content: "strict-origin-when-cross-origin" }
-  ];
-
-  metaTags.forEach(tag => {
-    const meta = document.createElement("meta");
-    meta.httpEquiv = tag.name;
-    meta.content = tag.content;
-    document.head.appendChild(meta);
-  });
-};
-
-// Add security headers on app load
-addSecurityHeaders();
+// NOTE: Security headers like X-Frame-Options and X-Content-Type-Options 
+// are configured in vite.config.ts (development) and vercel.json (production)
+// as they must be delivered as HTTP response headers, not meta tags.
 
 createRoot(document.getElementById("root")!).render(<App />);

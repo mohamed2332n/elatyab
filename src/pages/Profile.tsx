@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, Phone, Mail, MapPin, Bell, Shield, CreditCard, Heart, LogOut, Edit } from "lucide-react";
+import { User, Phone, Mail, MapPin, Bell, Shield, CreditCard, Heart, LogOut, Edit, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +12,10 @@ const Profile = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, loading } = useAuth();
-  const [error, setError] = useState<string | null>(null);
+  const [showSensitiveData, setShowSensitiveData] = useState({
+    phone: false,
+    address: false
+  });
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -25,6 +28,25 @@ const Profile = () => {
     await logout();
     toast.success("You have been logged out");
     navigate("/");
+  };
+
+  const toggleSensitiveData = (field: 'phone' | 'address') => {
+    setShowSensitiveData(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const maskPhone = (phone?: string) => {
+    if (!phone) return "";
+    return phone.replace(/(\+\d{2}\s)\d{7}(\d{3})/, "$1*******$2");
+  };
+
+  const maskAddress = (address?: string) => {
+    if (!address) return "";
+    const parts = address.split(",");
+    if (parts.length < 2) return "*******";
+    return `*******, ${parts[parts.length - 2].trim()}, ${parts[parts.length - 1].trim()}`;
   };
 
   const menuItems = [
@@ -50,38 +72,13 @@ const Profile = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-2">Error Loading Profile</h2>
-            <p className="text-muted-foreground mb-6">{error}</p>
-            <Button onClick={() => navigate("/")}>Go Home</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground mb-6">You must be logged in to view this page</p>
-            <Button onClick={() => navigate("/")}>Go Home</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <div className="container mx-auto px-4 py-6 flex-grow">
         <h1 className="text-2xl font-bold mb-6">My Profile</h1>
+        
         {/* Profile Header */}
         <div className="bg-card rounded-lg border border-border p-6 mb-6">
           <div className="flex items-center">
@@ -98,27 +95,58 @@ const Profile = () => {
               <p className="text-muted-foreground">{user?.email}</p>
             </div>
           </div>
+
           {/* Privacy Notice */}
           <div className="mt-4 p-3 bg-primary/5 rounded-md border border-primary/20">
             <p className="text-sm text-primary">
-              Your personal information is protected and only visible to you.
+              Your personal information is protected and masked by default. Click the icons to reveal.
             </p>
           </div>
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center">
-              <Phone className="h-5 w-5 text-muted-foreground mr-2" />
-              <span>{user?.phone}</span>
+
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Phone className="h-5 w-5 text-muted-foreground mr-2" />
+                <span className="font-mono">
+                  {showSensitiveData.phone ? user?.phone : maskPhone(user?.phone)}
+                </span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0" 
+                onClick={() => toggleSensitiveData('phone')}
+              >
+                {showSensitiveData.phone ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
             </div>
-            <div className="flex items-center">
-              <Mail className="h-5 w-5 text-muted-foreground mr-2" />
-              <span>{user?.email}</span>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Mail className="h-5 w-5 text-muted-foreground mr-2" />
+                <span>{user?.email}</span>
+              </div>
             </div>
-            <div className="flex items-start">
-              <MapPin className="h-5 w-5 text-muted-foreground mr-2 mt-0.5" />
-              <span>{user?.address}</span>
+
+            <div className="flex items-start justify-between">
+              <div className="flex items-start">
+                <MapPin className="h-5 w-5 text-muted-foreground mr-2 mt-0.5" />
+                <span>
+                  {showSensitiveData.address ? user?.address : maskAddress(user?.address)}
+                </span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0" 
+                onClick={() => toggleSensitiveData('address')}
+              >
+                {showSensitiveData.address ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
         </div>
+
         {/* Menu Items */}
         <div className="bg-card rounded-lg border border-border overflow-hidden">
           {menuItems.map((item, index) => (
@@ -132,11 +160,12 @@ const Profile = () => {
             </div>
           ))}
         </div>
-        {/* Security Notice */}
+
+        {/* Security Information */}
         <div className="mt-6 p-4 bg-card rounded-lg border border-border">
           <h3 className="font-bold mb-2">Security Information</h3>
           <p className="text-sm text-muted-foreground">
-            Your account is protected with industry-standard security measures. Always log out when using shared devices.
+            Session tokens are managed securely via in-memory state. For your safety, sensitive data is masked during viewing. Always log out when using shared devices.
           </p>
         </div>
       </div>
