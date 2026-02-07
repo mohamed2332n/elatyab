@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { apiService } from "@/services/api";
 import { showError } from "@/utils/toast";
+import { useAuth } from "@/context/auth-context";
 
 interface CartItem {
   id: string;
@@ -29,24 +30,29 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
 
-  // Initialize cart from server
+  // Initialize cart from server when authenticated
   useEffect(() => {
     const initializeCart = async () => {
-      try {
-        const serverItems = await apiService.getCartItems();
-        // In a real app, we would set items from server
-        // For this example, we'll keep client-side state but validate operations
-        setItems([]);
-      } catch (error) {
-        console.error("Error initializing cart:", error);
-      } finally {
+      if (isAuthenticated) {
+        try {
+          const serverItems = await apiService.getCartItems();
+          // In a real app, we would set items from server
+          // For this example, we'll keep client-side state but validate operations
+          setItems([]);
+        } catch (error) {
+          console.error("Error initializing cart:", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // For unauthenticated users, we still allow local cart operations
         setLoading(false);
       }
     };
-
     initializeCart();
-  }, []);
+  }, [isAuthenticated]);
 
   const addItem = async (item: Omit<CartItem, "quantity">) => {
     try {
@@ -56,7 +62,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setItems(prevItems => {
           const existingItem = prevItems.find(i => i.id === item.id);
           if (existingItem) {
-            return prevItems.map(i => 
+            return prevItems.map(i =>
               i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
             );
           } else {
@@ -97,10 +103,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Validate with server
       const result = await apiService.updateCartItem(id, quantity);
       if (result.success) {
-        setItems(prevItems => 
-          prevItems.map(item => 
-            item.id === id ? { ...item, quantity } : item
-          )
+        setItems(prevItems =>
+          prevItems.map(item => (item.id === id ? { ...item, quantity } : item))
         );
       } else {
         showError("Failed to update item quantity");
@@ -120,20 +124,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const getTotalPrice = () => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return items.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
   return (
-    <CartContext.Provider value={{ 
-      items, 
-      addItem, 
-      removeItem, 
-      updateQuantity, 
-      clearCart, 
-      getTotalItems, 
-      getTotalPrice,
-      loading
-    }}>
+    <CartContext.Provider
+      value={{
+        items,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clearCart,
+        getTotalItems,
+        getTotalPrice,
+        loading
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

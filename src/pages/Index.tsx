@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { Moon, Sun, Search, ShoppingCart, Home, Wallet, FolderOpen, ClipboardList, Gift, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,38 +11,68 @@ import ProductCard from "@/components/product-card";
 import OfferBanner from "@/components/offer-banner";
 import CategoryCard from "@/components/category-card";
 import { toast } from "sonner";
+import { useAuth } from "@/context/auth-context";
 
 const Index = () => {
   const { theme, toggleTheme } = useTheme();
   const { getTotalItems } = useCart();
+  const { isAuthenticated, login, logout } = useAuth();
   const navigate = useNavigate();
   const cartCount = getTotalItems();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    // Check if user is authenticated
-    setIsAuthenticated(!!localStorage.getItem("authenticated"));
-  }, []);
-
-  const handleLogin = () => {
-    // Simulate login
-    localStorage.setItem("authenticated", "true");
-    setIsAuthenticated(true);
-    toast.success("You are now logged in");
+  const handleLogin = async () => {
+    // In a real app, this would open a login modal or redirect to login page
+    // For demo purposes, we'll use mock credentials
+    const success = await login("user@example.com", "password");
+    if (success) {
+      toast.success("You are now logged in");
+    } else {
+      toast.error("Login failed. Please try again.");
+    }
   };
 
-  const handleLogout = () => {
-    // Simulate logout
-    localStorage.removeItem("authenticated");
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    await logout();
     toast.success("You have been logged out");
   };
 
   const featuredProducts = [
-    { id: "1", name: "Fresh Apple", weight: "500g", originalPrice: 199, discountedPrice: 129, discountPercent: 35, isInStock: true },
-    { id: "2", name: "Organic Banana", weight: "1 dozen", originalPrice: 89, discountedPrice: 69, discountPercent: 22, isInStock: true },
-    { id: "3", name: "Premium Mango", weight: "1 kg", originalPrice: 299, discountedPrice: 199, discountPercent: 33, isInStock: true },
-    { id: "4", name: "Fresh Spinach", weight: "250g", originalPrice: 49, discountedPrice: 39, discountPercent: 20, isInStock: true }
+    {
+      id: "1",
+      name: "Fresh Apple",
+      weight: "500g",
+      originalPrice: 199,
+      discountedPrice: 129,
+      discountPercent: 35,
+      isInStock: true
+    },
+    {
+      id: "2",
+      name: "Organic Banana",
+      weight: "1 dozen",
+      originalPrice: 89,
+      discountedPrice: 69,
+      discountPercent: 22,
+      isInStock: true
+    },
+    {
+      id: "3",
+      name: "Premium Mango",
+      weight: "1 kg",
+      originalPrice: 299,
+      discountedPrice: 199,
+      discountPercent: 33,
+      isInStock: true
+    },
+    {
+      id: "4",
+      name: "Fresh Spinach",
+      weight: "250g",
+      originalPrice: 49,
+      discountedPrice: 39,
+      discountPercent: 20,
+      isInStock: true
+    }
   ];
 
   const categories = [
@@ -65,7 +96,6 @@ const Index = () => {
               <Button variant="ghost" size="icon" onClick={toggleTheme}>
                 {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
-              
               {isAuthenticated ? (
                 <Button variant="ghost" size="icon" onClick={handleLogout}>
                   <User className="h-5 w-5" />
@@ -75,7 +105,6 @@ const Index = () => {
                   Login
                 </Button>
               )}
-              
               <div className="relative">
                 <Button variant="ghost" size="icon" onClick={() => navigate("/cart")}>
                   <ShoppingCart className="h-5 w-5" />
@@ -90,68 +119,69 @@ const Index = () => {
           </div>
           <div className="mt-3 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <input 
-              type="text" 
-              placeholder="Find Products here!" 
+            <input
+              type="text"
+              placeholder="Find Products here!"
               className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted border border-input focus:outline-none focus:ring-2 focus:ring-primary"
-              onClick={() => navigate("/search")} 
+              onClick={() => navigate("/search")}
             />
           </div>
         </div>
       </header>
-      
       {/* Main Content */}
       <main className="flex-grow container mx-auto px-4 py-6">
         <div className="mb-6">
           <h2 className="text-2xl font-bold mb-2">Welcome to FreshCart</h2>
           <p className="text-muted-foreground">Fresh fruits and vegetables delivered to your doorstep</p>
         </div>
-        
         {/* Hero Section */}
         <div className="bg-gradient-to-r from-primary to-secondary rounded-xl p-6 mb-8 text-white">
           <h3 className="text-2xl font-bold mb-2">Fresh Produce Daily</h3>
           <p className="mb-4">Get the freshest fruits and vegetables delivered to your home</p>
           <Button variant="secondary">Shop Now</Button>
         </div>
-        
         {/* Categories */}
         <section className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold">Categories</h3>
-            <Button variant="link" onClick={() => navigate("/categories")}>View All</Button>
+            <Button variant="link" onClick={() => navigate("/categories")}>
+              View All
+            </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map((category) => (
-              <CategoryCard 
-                key={category.id} 
-                name={category.name} 
-                icon={category.icon} 
-                itemCount={category.itemCount} 
-                onClick={() => navigate("/categories")} 
+              <CategoryCard
+                key={category.id}
+                name={category.name}
+                icon={category.icon}
+                itemCount={category.itemCount}
+                onClick={() => navigate("/categories")}
               />
             ))}
           </div>
         </section>
-        
         {/* Offers */}
         <section className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold">Special Offers</h3>
-            <Button variant="link" onClick={() => navigate("/offers")}>View All</Button>
+            <Button variant="link" onClick={() => navigate("/offers")}>
+              View All
+            </Button>
           </div>
-          <OfferBanner 
-            title="Deal of the Day" 
-            description="Potato-15 Carrot-29 Palak-29 Mushroom-35" 
-            validTill="06-02-2026" 
-            onOrderNow={() => navigate("/offers")} 
+          <OfferBanner
+            title="Deal of the Day"
+            description="Potato-15 Carrot-29 Palak-29 Mushroom-35"
+            validTill="06-02-2026"
+            onOrderNow={() => navigate("/offers")}
           />
         </section>
-        
         {/* Products */}
         <section>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold">Featured Products</h3>
-            <Button variant="link" onClick={() => navigate("/categories")}>View All</Button>
+            <Button variant="link" onClick={() => navigate("/categories")}>
+              View All
+            </Button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {featuredProducts.map((product) => (
@@ -160,7 +190,6 @@ const Index = () => {
           </div>
         </section>
       </main>
-      
       {/* Bottom Navigation */}
       <nav className="sticky bottom-0 bg-background border-t border-border">
         <div className="container mx-auto px-4">
@@ -172,9 +201,9 @@ const Index = () => {
               { icon: ClipboardList, label: "My Order", path: "/orders" },
               { icon: Gift, label: "Offers", path: "/offers" }
             ].map((item, index) => (
-              <Button 
-                key={index} 
-                variant="ghost" 
+              <Button
+                key={index}
+                variant="ghost"
                 className="flex flex-col items-center justify-center h-16 px-2 py-1"
                 onClick={() => navigate(item.path)}
               >

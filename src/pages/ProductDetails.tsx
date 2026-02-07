@@ -9,10 +9,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiService } from "@/services/api";
 import { showError } from "@/utils/toast";
 import { Product } from "@/services/api";
+import { useAuth } from "@/context/auth-context";
 
 const ProductDetails = () => {
   const { theme } = useTheme();
   const { addItem } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [quantity, setQuantity] = useState(1);
@@ -28,7 +30,6 @@ const ProductDetails = () => {
         navigate("/");
         return;
       }
-
       try {
         setLoading(true);
         const fetchedProduct = await apiService.getProduct(id);
@@ -46,13 +47,18 @@ const ProductDetails = () => {
         setLoading(false);
       }
     };
-
     fetchProduct();
   }, [id, navigate]);
 
   const handleAddToCart = async () => {
     if (!product) return;
     
+    // Check if user is authenticated for cart operations
+    if (!isAuthenticated) {
+      showError("Please log in to add items to your cart");
+      return;
+    }
+
     try {
       await addItem({
         id: product.id,
@@ -112,7 +118,9 @@ const ProductDetails = () => {
         <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-2">Product Not Found</h2>
-            <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist or has been removed.</p>
+            <p className="text-muted-foreground mb-4">
+              The product you're looking for doesn't exist or has been removed.
+            </p>
             <Button onClick={() => navigate("/")}>Go Home</Button>
           </div>
         </div>
@@ -140,34 +148,27 @@ const ProductDetails = () => {
           </div>
         </div>
       </header>
-      
       {/* Product Images */}
       <div className="relative">
-        <img 
-          src={product.images[selectedImage]} 
-          alt={product.name} 
-          className="w-full h-64 object-cover" 
-        />
+        <img src={product.images[selectedImage]} alt={product.name} className="w-full h-64 object-cover" />
         <div className="absolute top-4 right-4 bg-destructive text-white text-xs font-bold px-2 py-1 rounded">
           {product.discountPercent}% OFF
         </div>
       </div>
-      
       {/* Image Thumbnails */}
       <div className="flex justify-center space-x-2 mt-2 px-4">
         {product.images.map((image, index) => (
-          <img 
-            key={index} 
-            src={image} 
-            alt={`Product ${index + 1}`} 
+          <img
+            key={index}
+            src={image}
+            alt={`Product ${index + 1}`}
             className={`w-16 h-16 object-cover border-2 ${
               selectedImage === index ? "border-primary" : "border-border"
-            } rounded cursor-pointer`} 
-            onClick={() => setSelectedImage(index)} 
+            } rounded cursor-pointer`}
+            onClick={() => setSelectedImage(index)}
           />
         ))}
       </div>
-      
       {/* Product Info */}
       <div className="container mx-auto px-4 py-6 flex-grow">
         <div className="mb-4">
@@ -181,7 +182,6 @@ const ProductDetails = () => {
           </div>
           <p className="text-muted-foreground mt-1">{product.weight}</p>
         </div>
-        
         {/* Price */}
         <div className="mb-4">
           <div className="flex items-center">
@@ -192,7 +192,6 @@ const ProductDetails = () => {
           </div>
           <p className="text-sm text-muted-foreground mt-1">Inclusive of all taxes</p>
         </div>
-        
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mb-4">
           {product.tags.map((tag, index) => (
@@ -201,13 +200,11 @@ const ProductDetails = () => {
             </span>
           ))}
         </div>
-        
         {/* Description */}
         <div className="mb-6">
           <h3 className="font-bold mb-2">Description</h3>
           <p className="text-muted-foreground">{product.description}</p>
         </div>
-        
         {/* Product Details */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-card rounded-lg p-3 border border-border">
@@ -229,46 +226,39 @@ const ProductDetails = () => {
             </p>
           </div>
         </div>
-        
         {/* Quantity Selector */}
         <div className="flex items-center justify-between mb-6">
           <span className="font-medium">Quantity</span>
           <div className="flex items-center border border-input rounded-md">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-10 w-10" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10"
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
             >
               -
             </Button>
             <span className="px-4">{quantity}</span>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-10 w-10" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10"
               onClick={() => setQuantity(quantity + 1)}
             >
               +
             </Button>
           </div>
         </div>
-        
         {/* Action Buttons */}
         <div className="flex space-x-3">
-          <Button 
-            variant="outline" 
-            className="flex-1" 
-            onClick={toggleWishlist}
-          >
-            <Heart className={`mr-2 ${isWishlisted ? "fill-destructive text-destructive" : ""}`} /> 
-            Wishlist
+          <Button variant="outline" className="flex-1" onClick={toggleWishlist}>
+            <Heart className={`mr-2 ${isWishlisted ? "fill-destructive text-destructive" : ""}`} /> Wishlist
           </Button>
-          <Button 
-            className="flex-1" 
-            size="lg" 
-            onClick={handleAddToCart} 
-            disabled={!product.isInStock}
+          <Button
+            className="flex-1"
+            size="lg"
+            onClick={handleAddToCart}
+            disabled={!product.isInStock || !isAuthenticated}
           >
             <ShoppingCart className="mr-2" /> Add to Cart
           </Button>

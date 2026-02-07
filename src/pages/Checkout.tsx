@@ -7,20 +7,24 @@ import { useCart } from "@/context/cart-context";
 import { useTheme } from "@/components/theme-provider";
 import { apiService } from "@/services/api";
 import { showError, showSuccess } from "@/utils/toast";
+import { useAuth } from "@/context/auth-context";
 
 const Checkout = () => {
   const { items, getTotalPrice, clearCart } = useCart();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("wallet");
 
+  // Redirect if not authenticated or cart is empty
   useEffect(() => {
-    // Redirect if cart is empty
-    if (items.length === 0) {
+    if (!authLoading && !isAuthenticated) {
+      navigate("/");
+    } else if (!authLoading && isAuthenticated && items.length === 0) {
       navigate("/");
     }
-  }, [items, navigate]);
+  }, [isAuthenticated, authLoading, items, navigate]);
 
   const totalPrice = getTotalPrice();
   const deliveryFee = totalPrice >= 500 ? 0 : 30;
@@ -28,9 +32,7 @@ const Checkout = () => {
 
   const handlePlaceOrder = async () => {
     if (items.length === 0) return;
-    
     setIsPlacingOrder(true);
-    
     try {
       // Validate and place order with server
       const result = await apiService.placeOrder(
@@ -42,7 +44,6 @@ const Checkout = () => {
         })),
         finalTotal
       );
-      
       if (result.success) {
         clearCart();
         showSuccess("Order placed successfully!");
@@ -58,6 +59,33 @@ const Checkout = () => {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="container mx-auto px-4 py-8 flex-grow flex flex-col items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="container mx-auto px-4 py-8 flex-grow flex flex-col items-center justify-center">
+          <div className="text-center max-w-md">
+            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">You must be logged in to checkout</p>
+            <Button onClick={() => navigate("/")}>Go Home</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -67,9 +95,7 @@ const Checkout = () => {
               <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
-            <p className="text-muted-foreground mb-6">
-              Add items to your cart before checking out
-            </p>
+            <p className="text-muted-foreground mb-6">Add items to your cart before checking out</p>
             <Button onClick={() => navigate("/")}>Start Shopping</Button>
           </div>
         </div>
@@ -108,8 +134,8 @@ const Checkout = () => {
                   { id: "card", name: "Credit/Debit Card", description: "Visa, Mastercard, etc." },
                   { id: "cod", name: "Cash on Delivery", description: "" }
                 ].map((method) => (
-                  <div 
-                    key={method.id} 
+                  <div
+                    key={method.id}
                     className={`flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted ${
                       paymentMethod === method.id ? "ring-2 ring-primary" : ""
                     }`}
@@ -121,15 +147,16 @@ const Checkout = () => {
                         <p className="text-sm text-muted-foreground">{method.description}</p>
                       )}
                     </div>
-                    <div className={`w-5 h-5 rounded-full border border-input ${
-                      paymentMethod === method.id ? "bg-primary" : ""
-                    }`}></div>
+                    <div
+                      className={`w-5 h-5 rounded-full border border-input ${
+                        paymentMethod === method.id ? "bg-primary" : ""
+                      }`}
+                    ></div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-          
           {/* Order Summary */}
           <div>
             <div className="bg-card rounded-lg border border-border p-6 sticky top-6">
@@ -159,10 +186,10 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
-              <Button 
-                className="w-full" 
-                size="lg" 
-                onClick={handlePlaceOrder} 
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handlePlaceOrder}
                 disabled={isPlacingOrder}
               >
                 {isPlacingOrder ? "Placing Order..." : "Place Order"}
