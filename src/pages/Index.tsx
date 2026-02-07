@@ -16,6 +16,42 @@ import CategoryCard from "@/components/category-card";
 import OfferBanner from "@/components/offer-banner";
 import { Header } from "@/components/header";
 import { MadeWithDyad } from "@/components/made-with-dyad";
+<<<<<<< HEAD
+=======
+import ProductCard from "@/components/product-card";
+import OfferBanner from "@/components/offer-banner";
+import CategoryCard from "@/components/category-card";
+import { toast } from "sonner";
+import { productsService } from "@/services/supabase/products";
+import { categoriesService } from "@/services/supabase/categories";
+import { offersService } from "@/services/supabase/offers";
+
+interface Category {
+  id: string;
+  name_en: string;
+  name_ar: string;
+  icon: string;
+}
+
+interface Product {
+  id: string;
+  name_en: string;
+  name_ar: string;
+  price: number;
+  old_price: number | null;
+  discount_percent: number;
+  weight: string;
+  is_in_stock: boolean;
+  images?: string[];
+}
+
+interface Offer {
+  id: string;
+  title_en: string;
+  title_ar: string;
+  image_url: string;
+}
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 const Index = () => {
   const { theme, toggleTheme } = useTheme();
@@ -24,6 +60,7 @@ const Index = () => {
   const navigate = useNavigate();
   const cartCount = getTotalItems();
 
+<<<<<<< HEAD
   const featuredProducts = [
     { id: "1", name: i18n.language === 'ar' ? 'تفاح طازج' : "Fresh Apple", weight: "500g", originalPrice: 199, discountedPrice: 129, discountPercent: 35 },
     { id: "2", name: i18n.language === 'ar' ? 'موز عضوي' : "Organic Banana", weight: "1 doz", originalPrice: 89, discountedPrice: 69, discountPercent: 22 },
@@ -37,6 +74,44 @@ const Index = () => {
     { id: 3, name: t('category'), icon: "🍿", itemCount: 22 },
     { id: 4, name: t('category'), icon: "🎁", itemCount: 16 }
   ];
+=======
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPageData();
+  }, []);
+
+  const loadPageData = async () => {
+    try {
+      setLoading(true);
+      const [categoriesRes, productsRes, offersRes] = await Promise.all([
+        categoriesService.getAllCategories(),
+        productsService.getFeaturedProducts(),
+        offersService.getActiveOffers(),
+      ]);
+
+      if (!categoriesRes.error && categoriesRes.data) {
+        setCategories(categoriesRes.data);
+      }
+
+      if (!productsRes.error && productsRes.data) {
+        setFeaturedProducts(productsRes.data);
+      }
+
+      if (!offersRes.error && offersRes.data) {
+        setOffers(offersRes.data);
+      }
+    } catch (error) {
+      console.error("Error loading page data:", error);
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  };
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">

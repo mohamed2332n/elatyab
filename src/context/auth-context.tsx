@@ -2,7 +2,20 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { showError, showSuccess } from "@/utils/toast";
+<<<<<<< HEAD
 import { apiService, User } from "@/services/api";
+=======
+import { authService } from "@/services/supabase/auth";
+import { supabase } from "@/config/supabase";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+}
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 interface AuthContextType {
   user: User | null;
@@ -11,7 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, phone: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
@@ -30,12 +43,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+<<<<<<< HEAD
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const userData = await apiService.getMe();
         if (userData) {
           setUser(userData);
+=======
+  // Check if user is logged in and get profile
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (authUser) {
+          // Get full profile from database
+          const { data: profile, error: profileError } = await authService.getUserProfile(authUser.id);
+          
+          if (!profileError && profile) {
+            setUser({
+              id: profile.id,
+              name: profile.name || authUser.user_metadata?.name || '',
+              email: profile.email || authUser.email || '',
+              phone: profile.phone || '',
+              avatar: profile.avatar_url,
+            });
+          } else {
+            // Fallback to auth user info
+            setUser({
+              id: authUser.id,
+              name: authUser.user_metadata?.name || '',
+              email: authUser.email || '',
+              phone: authUser.user_metadata?.phone || '',
+            });
+          }
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
         }
       } catch (err) {
         console.error("Auth check failed:", err);
@@ -45,6 +88,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     checkAuth();
+
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const { data: profile } = await authService.getUserProfile(session.user.id);
+        if (profile) {
+          setUser({
+            id: profile.id,
+            name: profile.name || session.user.user_metadata?.name || '',
+            email: profile.email || session.user.email || '',
+            phone: profile.phone || '',
+            avatar: profile.avatar_url,
+          });
+        }
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -60,6 +125,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         throw new Error("Invalid credentials");
       }
+<<<<<<< HEAD
+=======
+
+      if (!email.includes("@")) {
+        throw new Error("Invalid email format");
+      }
+
+      // Sign in with Supabase
+      const { data, error: signInError } = await authService.signIn(email, password);
+      
+      if (signInError) throw signInError;
+      if (!data.user) throw new Error("Sign in failed");
+
+      // Get profile
+      const { data: profile, error: profileError } = await authService.getUserProfile(data.user.id);
+      
+      if (!profileError && profile) {
+        setUser({
+          id: profile.id,
+          name: profile.name || data.user.user_metadata?.name || '',
+          email: profile.email || data.user.email || '',
+          phone: profile.phone || '',
+          avatar: profile.avatar_url,
+        });
+      }
+
+      showSuccess(`Welcome back, ${data.user.email.split("@")[0]}!`);
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
@@ -75,6 +168,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
 
     try {
+<<<<<<< HEAD
       // In a real app, this would be a server call
       const userData: User = {
         id: `user_${Date.now()}`,
@@ -85,6 +179,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
       
       setUser(userData);
+=======
+      // Validate inputs
+      if (!name || !email || !phone || !password) {
+        throw new Error("All fields are required");
+      }
+
+      if (!email.includes("@")) {
+        throw new Error("Invalid email format");
+      }
+
+      if (phone.replace(/\D/g, '').length < 10) {
+        throw new Error("Phone number must be at least 10 digits");
+      }
+
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+
+      // Sign up with Supabase
+      const { data, error: signUpError } = await authService.signUp(email, password, name, phone);
+      
+      if (signUpError) throw signUpError;
+      if (!data.user) throw new Error("Sign up failed");
+
+      // Set user state with name and phone
+      setUser({
+        id: data.user.id,
+        name,
+        email,
+        phone,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+      });
+
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
       showSuccess("Account created successfully! 🎉");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Signup failed";
@@ -98,12 +226,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     try {
+<<<<<<< HEAD
       await apiService.logout();
+=======
+      await authService.signOut();
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
       setUser(null);
       setError(null);
       showSuccess("Logged out successfully");
     } catch (err) {
+<<<<<<< HEAD
       console.error("Logout failed:", err);
+=======
+      const message = err instanceof Error ? err.message : "Logout failed";
+      showError(message);
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     }
   };
 
@@ -112,7 +249,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
 
     try {
+<<<<<<< HEAD
       if (!user) throw new Error("No user logged in");
+=======
+      if (!user) {
+        throw new Error("No user logged in");
+      }
+
+      // Update profile in Supabase
+      const { data, error: updateError } = await authService.updateProfile(user.id, {
+        name: updates.name,
+        phone: updates.phone,
+        avatar_url: updates.avatar,
+      });
+
+      if (updateError) throw updateError;
+
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
       const updatedUser = { ...user, ...updates };
       setUser(updatedUser);
       showSuccess("Profile updated successfully");

@@ -4,9 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
+<<<<<<< HEAD
 import { LanguageProvider } from "@/context/language-context";
+=======
+import { LangProvider } from "@/context/lang-context";
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 import { CartProvider } from "@/context/cart-context";
-import { WishlistProvider } from "@/context/wishlist-context";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import FloatingCart from "@/components/floating-cart";
 import Index from "./pages/Index";
@@ -22,6 +25,8 @@ import Checkout from "./pages/Checkout";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Wishlist from "./pages/Wishlist";
+import Addresses from "./pages/Addresses";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -105,12 +110,34 @@ const AppRoutes = () => (
         </ProtectedRoute>
       } 
     />
+<<<<<<< HEAD
+=======
+    <Route 
+      path="/wishlist" 
+      element={
+        <ProtectedRoute>
+          <Wishlist />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/addresses" 
+      element={
+        <ProtectedRoute>
+          <Addresses />
+        </ProtectedRoute>
+      } 
+    />
+    
+    {/* Catch-all */}
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+<<<<<<< HEAD
     <AuthProvider>
       <CartProvider>
         <WishlistProvider>
@@ -129,6 +156,24 @@ const App = () => (
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>
+=======
+    <LangProvider>
+      <AuthProvider>
+        <CartProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <FloatingCart />
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </ThemeProvider>
+        </CartProvider>
+      </AuthProvider>
+    </LangProvider>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   </QueryClientProvider>
 );
 

@@ -8,8 +8,13 @@ import { useCart } from "@/context/cart-context";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/context/auth-context";
 import { toast } from "sonner";
+<<<<<<< HEAD
 import { useTranslation } from "react-i18next";
 import { formatPrice } from "@/utils/price-formatter";
+=======
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, getTotalItems, getTotalPrice } = useCart();
@@ -58,6 +63,15 @@ const Cart = () => {
     );
   }
 
+<<<<<<< HEAD
+=======
+  const totalItems = getTotalItems();
+  const totalPrice = getTotalPrice();
+  const deliveryFee = totalPrice >= 500 ? 0 : 30;
+  const finalTotal = totalPrice + deliveryFee;
+  const { lang } = useLang();
+
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   return (
     <div className="min-h-screen flex flex-col bg-background animate-in-fade">
       <div className="container mx-auto px-4 py-6 flex-grow">
@@ -81,7 +95,11 @@ const Cart = () => {
                   <div className="ml-4 flex-grow">
                     <h3 className="font-semibold text-lg">{item.name}</h3>
                     <p className="text-sm text-muted-foreground">📦 {item.weight}</p>
+<<<<<<< HEAD
                     <p className="font-bold text-green-600 mt-1">{formatPrice(item.price, i18n.language)}</p>
+=======
+                    <p className="font-bold text-green-600 mt-1">{formatPrice(item.price, lang)}</p>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
                   </div>
                   
                   <div className="flex items-center gap-2 bg-primary/5 rounded-full px-2 py-1 border border-primary/20">
@@ -105,7 +123,11 @@ const Cart = () => {
                   </div>
                   
                   <div className="ml-4 text-right min-w-[80px]">
+<<<<<<< HEAD
                     <p className="font-bold text-lg">{formatPrice(item.price * item.quantity, i18n.language)}</p>
+=======
+                    <p className="font-bold text-lg">{formatPrice(item.price * item.quantity, lang)}</p>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
                     <Button
                       variant="ghost"
                       size="sm"
@@ -129,6 +151,7 @@ const Cart = () => {
           </div>
           
           <div>
+<<<<<<< HEAD
             <div className="bg-card rounded-lg border border-border p-6 sticky top-20 shadow-lg card-animate">
               <h2 className="text-2xl font-bold mb-4">{t('total')}</h2>
               <div className="space-y-3 mb-6">
@@ -143,6 +166,40 @@ const Cart = () => {
                 <div className="border-t pt-3 flex justify-between font-bold text-xl text-primary">
                   <span>Total</span>
                   <span>{formatPrice(finalTotal, i18n.language)}</span>
+=======
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800 p-6 sticky top-20 shadow-lg card-animate">
+              <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                <span className="emoji-bounce">📋</span> Order Summary
+              </h2>
+              
+              <div className="space-y-3 mb-6 text-sm">
+                {/* Subtotal */}
+                <div className="flex justify-between items-center pb-2 border-b border-border/20">
+                  <span className="flex items-center gap-2">
+                    <span>🛒</span> Subtotal
+                  </span>
+                  <span className="font-semibold">{formatPrice(totalPrice, lang)}</span>
+                </div>
+
+                {/* Delivery Fee */}
+                <div className="flex justify-between items-center pb-2 border-b border-border/20">
+                  <span className="flex items-center gap-2">
+                    <span>🚚</span> Delivery Fee
+                  </span>
+                  <span className={`font-semibold ${deliveryFee === 0 ? "text-green-600" : ""}`}>
+                    {deliveryFee === 0 ? (
+                      <span className="emoji-bounce">FREE ✨</span>
+                    ) : (
+                      formatPrice(deliveryFee, lang)
+                    )}
+                  </span>
+                </div>
+
+                {/* Total */}
+                <div className="flex justify-between items-center pt-2 bg-primary/10 rounded-lg px-3 py-2">
+                  <span className="font-bold text-base">Total Amount</span>
+                  <span className="font-bold text-xl text-primary">{formatPrice(finalTotal, lang)}</span>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
                 </div>
               </div>
               <Button 
@@ -152,6 +209,29 @@ const Cart = () => {
               >
                 {isCheckingOut ? "Processing..." : t('proceedToCheckout')}
               </Button>
+<<<<<<< HEAD
+=======
+              
+              {/* Free Delivery Message */}
+              <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-black/20 text-center">
+                {deliveryFee > 0 ? (
+                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                    <span className="emoji-bounce">🎉</span> Add {formatPrice(500 - totalPrice, lang)} more for FREE delivery!
+                  </p>
+                ) : (
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center justify-center gap-2">
+                    <span className="emoji-bounce">✨</span> You get FREE delivery!
+                  </p>
+                )}
+              </div>
+
+              {/* Money Back Guarantee */}
+              <div className="mt-4 pt-4 border-t border-border/20">
+                <p className="text-xs text-muted-foreground text-center">
+                  <span className="emoji-wiggle">💳</span> Secure payment guaranteed
+                </p>
+              </div>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
             </div>
           </div>
         </div>

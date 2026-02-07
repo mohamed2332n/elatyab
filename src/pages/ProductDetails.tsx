@@ -4,19 +4,47 @@ import { useState, useEffect } from "react";
 import { Heart, ShoppingCart, Share2, Star, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
 import { useCart } from "@/context/cart-context";
 import { useNavigate, useParams } from "react-router-dom";
+<<<<<<< HEAD
 import { apiService, Product } from "@/services/api";
 import { showError } from "@/utils/toast";
 import { useAuth } from "@/context/auth-context";
 import { useTranslation } from "react-i18next";
 import { formatPrice } from "@/utils/price-formatter";
+=======
+import { productsService } from "@/services/supabase/products";
+import { wishlistService } from "@/services/supabase/wishlist";
+import { useAuth } from "@/context/auth-context";
+import { showError } from "@/utils/toast";
+import ProductReviews from "@/components/product-reviews";
+
+interface Product {
+  id: string;
+  name_en: string;
+  name_ar: string;
+  description_en: string;
+  description_ar: string;
+  price: number;
+  discount_percentage: number;
+  in_stock: boolean;
+  category_id: string;
+  image_url: string;
+}
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 const ProductDetails = () => {
   const { theme } = useTheme();
+  const { lang } = useLang();
   const { addItem } = useCart();
+<<<<<<< HEAD
   const { t, i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
+=======
+  const { user } = useAuth();
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [quantity, setQuantity] = useState(1);
@@ -30,9 +58,14 @@ const ProductDetails = () => {
       if (!id) return;
       try {
         setLoading(true);
-        const fetchedProduct = await apiService.getProduct(id);
-        if (fetchedProduct) {
+        const { data: fetchedProduct, error } = await productsService.getProduct(id);
+        if (!error && fetchedProduct) {
           setProduct(fetchedProduct);
+          // Check if wishlisted
+          if (user) {
+            const { data: wishlisted } = await wishlistService.isInWishlist(user.id, id);
+            setIsWishlisted(wishlisted || false);
+          }
         } else {
           showError("Product not found");
           navigate("/");
@@ -45,7 +78,7 @@ const ProductDetails = () => {
       }
     };
     fetchProduct();
-  }, [id, navigate]);
+  }, [id, navigate, user]);
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -64,8 +97,69 @@ const ProductDetails = () => {
     navigate("/cart");
   };
 
+<<<<<<< HEAD
   if (loading) return <div className="min-h-screen flex items-center justify-center animate-pulse text-4xl">⏳</div>;
   if (!product) return null;
+=======
+  const toggleWishlist = async () => {
+    if (!user) {
+      showError("Please log in to use wishlist");
+      return;
+    }
+    if (!product) return;
+
+    try {
+      if (isWishlisted) {
+        const { error } = await wishlistService.removeFromWishlist(user.id, product.id);
+        if (!error) {
+          setIsWishlisted(false);
+        } else {
+          showError("Failed to remove from wishlist");
+        }
+      } else {
+        const { error } = await wishlistService.addToWishlist(user.id, product.id);
+        if (!error) {
+          setIsWishlisted(true);
+        } else {
+          showError("Failed to add to wishlist");
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling wishlist:", error);
+      showError("Failed to update wishlist");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background animate-in-fade">
+        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl emoji-spin mb-4">📦</div>
+            <p className="text-muted-foreground">Loading product details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background animate-in-fade">
+        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl emoji-float mb-4">😢</div>
+            <h2 className="text-2xl font-bold mb-2">Product Not Found</h2>
+            <p className="text-muted-foreground mb-6">The product you're looking for doesn't exist or has been removed.</p>
+            <Button onClick={() => navigate("/")} className="gap-2">
+              <span>🏠</span> Go Home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -90,6 +184,7 @@ const ProductDetails = () => {
                 {product.discountPercent}% {t('off')}
               </div>
             </div>
+<<<<<<< HEAD
             <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
               {product.images.map((img, idx) => (
                 <img
@@ -99,6 +194,26 @@ const ProductDetails = () => {
                   className={`w-20 h-20 object-cover rounded-lg cursor-pointer border-2 ${selectedImage === idx ? 'border-primary' : 'border-transparent'}`}
                   onClick={() => setSelectedImage(idx)}
                 />
+=======
+
+            {/* Price Section */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800 card-animate" style={{ animationDelay: "50ms" }}>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl font-bold text-green-600">{formatPrice(product.discountedPrice, lang)}</span>
+                {product.originalPrice > product.discountedPrice && (
+                  <span className="text-lg text-muted-foreground line-through">{formatPrice(product.originalPrice, lang)}</span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">Inclusive of all taxes</p>
+            </div>
+
+            {/* Product Tags */}
+            <div className="flex flex-wrap gap-2 card-animate" style={{ animationDelay: "100ms" }}>
+              {product.tags.map((tag, index) => (
+                <span key={index} className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full font-medium">
+                  <span className="emoji-bounce">#</span> {tag}
+                </span>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
               ))}
             </div>
           </div>
@@ -112,10 +227,20 @@ const ProductDetails = () => {
               <span className="text-muted-foreground text-sm">({product.reviewsCount} reviews)</span>
             </div>
 
+<<<<<<< HEAD
             <div className="mb-6">
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-bold text-primary">{formatPrice(product.discountedPrice, i18n.language)}</span>
                 <span className="text-muted-foreground line-through">{formatPrice(product.originalPrice, i18n.language)}</span>
+=======
+            {/* Info Cards */}
+            <div className="space-y-3">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <p className="text-sm font-medium text-green-800 dark:text-green-300 flex items-center gap-2">
+                  <span>🚚</span> Free Delivery
+                </p>
+                <p className="text-xs text-green-700 dark:text-green-400 mt-1">Orders above {formatPrice(500, lang)}</p>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
               </div>
               <p className="text-xs text-muted-foreground mt-1">Inclusive of all taxes • {product.weight}</p>
             </div>
@@ -148,7 +273,22 @@ const ProductDetails = () => {
             </div>
           </div>
         </div>
+<<<<<<< HEAD
       </main>
+=======
+
+        {/* Product Reviews Section */}
+        {product && (
+          <div className="mt-12 border-t border-border pt-12">
+            <ProductReviews
+              productId={product.id}
+              productName={product[`name_${lang}`]}
+              productPrice={product.price}
+            />
+          </div>
+        )}
+      </div>
+>>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
     </div>
   );
 };
