@@ -54,14 +54,6 @@ export const apiService = {
     }
   },
 
-  resendConfirmationEmail: async (email: string): Promise<void> => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-    });
-    if (error) throw error;
-  },
-
   signup: async (name: string, email: string, phone: string, password: string): Promise<void> => {
     try {
       console.log("[API] Attempting signup for:", email);
