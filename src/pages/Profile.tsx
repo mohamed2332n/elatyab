@@ -5,8 +5,8 @@ import { User, Phone, Mail, MapPin, Bell, Shield, CreditCard, Heart, LogOut, Edi
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Profile = () => {
   const { user, logout, updateProfile, isAuthenticated, loading } = useAuth();
@@ -17,8 +17,9 @@ const Profile = () => {
   const [name, setName] = useState(user?.name || "");
 
   useEffect(() => {
+    if (!loading && !isAuthenticated) navigate("/login");
     if (user) setName(user.name);
-  }, [user]);
+  }, [isAuthenticated, loading, navigate, user]);
 
   const handleUpdate = async () => {
     await updateProfile({ name });
@@ -36,22 +37,24 @@ const Profile = () => {
     { icon: CreditCard, label: "Payments", path: "/wallet", emoji: "💳" },
   ];
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center animate-spin text-4xl">⏳</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center animate-spin">⏳</div>;
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background p-4 flex flex-col items-center animate-in-fade">
+    <div className="min-h-screen bg-background p-4 flex flex-col items-center">
       <div className="w-full max-w-2xl bg-card border border-border rounded-2xl shadow-xl overflow-hidden mt-8">
         <div className="bg-gradient-to-r from-primary to-primary/80 p-8 text-white flex flex-col items-center text-center">
           <div className="relative mb-4">
-            <img src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt={user.name} className="w-24 h-24 rounded-full border-4 border-white/50 shadow-lg" />
+            <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-4xl border-4 border-white/50 shadow-lg">
+              👤
+            </div>
             <Button size="icon" variant="secondary" className="absolute bottom-0 right-0 rounded-full h-8 w-8 shadow-md">
               <Edit className="h-4 w-4" />
             </Button>
           </div>
           {isEditing ? (
             <div className="flex gap-2">
-              <input value={name} onChange={e => setName(e.target.value)} className="text-foreground px-3 py-1 rounded-lg" />
+              <input value={name} onChange={e => setName(e.target.value)} className="text-foreground px-2 py-1 rounded" />
               <Button size="sm" variant="secondary" onClick={handleUpdate}>Save</Button>
             </div>
           ) : (
@@ -73,6 +76,7 @@ const Profile = () => {
                 {showSensitive.phone ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
+
             <div className="p-4 bg-muted/30 rounded-xl border border-border flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
@@ -96,7 +100,7 @@ const Profile = () => {
             ))}
           </div>
 
-          <Button variant="destructive" className="w-full gap-2 py-6 text-lg font-bold" onClick={logout}>
+          <Button variant="destructive" className="w-full gap-2 py-6 text-lg" onClick={logout}>
             <LogOut className="h-5 w-5" /> {t('logout')}
           </Button>
         </div>
