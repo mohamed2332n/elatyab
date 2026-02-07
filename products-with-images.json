@@ -1,0 +1,260 @@
+{
+  "categories": [
+    {
+      "id": "cat-1",
+      "name_en": "Fresh Vegetables",
+      "name_ar": "الخضار الطازة",
+      "description_en": "Fresh and organic vegetables",
+      "description_ar": "خضار عضوية طازة",
+      "image_url": "https://images.unsplash.com/photo-1464226184081-280282068794?w=800&q=80"
+    },
+    {
+      "id": "cat-2",
+      "name_en": "Fresh Fruits",
+      "name_ar": "الفاكهة الطازة",
+      "description_en": "Fresh and seasonal fruits",
+      "description_ar": "فاكهة طازة وموسمية",
+      "image_url": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80"
+    },
+    {
+      "id": "cat-3",
+      "name_en": "Organic Dairy",
+      "name_ar": "الألبان العضوية",
+      "description_en": "Organic milk and dairy products",
+      "description_ar": "منتجات ألبان عضوية",
+      "image_url": "https://images.unsplash.com/photo-1628185286519-3bda8aab5308?w=800&q=80"
+    },
+    {
+      "id": "cat-4",
+      "name_en": "Bread & Bakery",
+      "name_ar": "الخبز والمخابز",
+      "description_en": "Fresh baked goods daily",
+      "description_ar": "منتجات مخبوزة طازة يومياً",
+      "image_url": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&q=80"
+    },
+    {
+      "id": "cat-5",
+      "name_en": "Beverages",
+      "name_ar": "المشروبات",
+      "description_en": "Fresh juices and beverages",
+      "description_ar": "عصائر ومشروبات طازة",
+      "image_url": "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&q=80"
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-1",
+      "name_en": "Fresh Tomatoes",
+      "name_ar": "طماطم طازة",
+      "description_en": "Beautiful red tomatoes from local farms, fresh and juicy",
+      "description_ar": "طماطم حمراء جميلة من المزارع المحلية، طازة وعصيرية",
+      "price": 45,
+      "discount_percentage": 10,
+      "category_id": "cat-1",
+      "image_url": "https://images.unsplash.com/photo-1592841494218-92ec4303e901?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 100,
+      "rating": 4.5
+    },
+    {
+      "id": "prod-2",
+      "name_en": "Organic Cucumber",
+      "name_ar": "خيار عضوي",
+      "description_en": "Fresh organic cucumbers, pesticide-free and crispy",
+      "description_ar": "خيار عضوي طازة خالي من الآفات وهش",
+      "price": 35,
+      "discount_percentage": 5,
+      "category_id": "cat-1",
+      "image_url": "https://images.unsplash.com/photo-1610312048352-c3e06b9b88d2?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 80,
+      "rating": 4.3
+    },
+    {
+      "id": "prod-3",
+      "name_en": "Leafy Spinach",
+      "name_ar": "السبانخ الطازة",
+      "description_en": "Nutritious spinach greens, rich in iron and vitamins",
+      "description_ar": "أوراق السبانخ المغذية، غنية بالحديد والفيتامينات",
+      "price": 55,
+      "discount_percentage": 0,
+      "category_id": "cat-1",
+      "image_url": "https://images.unsplash.com/photo-1599599810694-b3b58ceaf60e?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 60,
+      "rating": 4.4
+    },
+    {
+      "id": "prod-4",
+      "name_en": "Fresh Bananas",
+      "name_ar": "الموز الطازة",
+      "description_en": "Sweet yellow bananas, perfect for breakfast and smoothies",
+      "description_ar": "موز أصفر حلو، مثالي للإفطار والعصائر",
+      "price": 89,
+      "discount_percentage": 20,
+      "category_id": "cat-2",
+      "image_url": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 150,
+      "rating": 4.6
+    },
+    {
+      "id": "prod-5",
+      "name_en": "Red Apples",
+      "name_ar": "التفاح الأحمر",
+      "description_en": "Crispy red delicious apples, sweet and crunchy taste",
+      "description_ar": "تفاح أحمر لذيذ وهش، طعم حلو وسهل المضغ",
+      "price": 199,
+      "discount_percentage": 15,
+      "category_id": "cat-2",
+      "image_url": "https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 120,
+      "rating": 4.7
+    },
+    {
+      "id": "prod-6",
+      "name_en": "Fresh Oranges",
+      "name_ar": "البرتقال الطازة",
+      "description_en": "Sweet oranges full of vitamin C, perfect for juices",
+      "description_ar": "برتقال حلو غني بفيتامين سي، مثالي للعصائر",
+      "price": 129,
+      "discount_percentage": 10,
+      "category_id": "cat-2",
+      "image_url": "https://images.unsplash.com/photo-1582979191041-38161f08b60f?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 200,
+      "rating": 4.5
+    },
+    {
+      "id": "prod-7",
+      "name_en": "Fresh Milk 1L",
+      "name_ar": "الحليب الطازة 1 لتر",
+      "description_en": "Pure fresh milk, pasteurized and fortified with vitamins",
+      "description_ar": "حليب طازة نقي، معقم وغني بالفيتامينات",
+      "price": 145,
+      "discount_percentage": 5,
+      "category_id": "cat-3",
+      "image_url": "https://images.unsplash.com/photo-1563636619-41c34cfb8f89?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 500,
+      "rating": 4.6
+    },
+    {
+      "id": "prod-8",
+      "name_en": "Greek Yogurt 500g",
+      "name_ar": "الزبادي اليوناني 500جم",
+      "description_en": "Creamy Greek yogurt, protein-rich and delicious",
+      "description_ar": "زبادي يوناني كريمي، غني بالبروتين وشهي",
+      "price": 225,
+      "discount_percentage": 0,
+      "category_id": "cat-3",
+      "image_url": "https://images.unsplash.com/photo-1488477181946-6428a0291840?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 250,
+      "rating": 4.8
+    },
+    {
+      "id": "prod-9",
+      "name_en": "Fresh Cheese 200g",
+      "name_ar": "الجبن الطازة 200جم",
+      "description_en": "Soft white cheese, perfect for breakfast and sandwiches",
+      "description_ar": "جبن أبيض ناعم، مثالي للإفطار والشطائر",
+      "price": 185,
+      "discount_percentage": 10,
+      "category_id": "cat-3",
+      "image_url": "https://images.unsplash.com/photo-1618164436241-4473940571db?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 300,
+      "rating": 4.5
+    },
+    {
+      "id": "prod-10",
+      "name_en": "Fresh Bread",
+      "name_ar": "الخبز الطازة",
+      "description_en": "Wholesome whole wheat bread, baked daily",
+      "description_ar": "خبز قمح كامل صحي، مخبوز يومياً",
+      "price": 85,
+      "discount_percentage": 0,
+      "category_id": "cat-4",
+      "image_url": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 400,
+      "rating": 4.4
+    },
+    {
+      "id": "prod-11",
+      "name_en": "Croissants Box",
+      "name_ar": "صندوق الكرواسان",
+      "description_en": "Buttery croissants pack of 4, fresh and flaky",
+      "description_ar": "كرواسان الزبدة مجموعة 4، طازة وهشة",
+      "price": 295,
+      "discount_percentage": 15,
+      "category_id": "cat-4",
+      "image_url": "https://images.unsplash.com/photo-1585080420955-91baf5024856?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 150,
+      "rating": 4.7
+    },
+    {
+      "id": "prod-12",
+      "name_en": "Fresh Orange Juice 1L",
+      "name_ar": "عصير البرتقال الطازة 1 لتر",
+      "description_en": "Pure squeezed orange juice, no additives",
+      "description_ar": "عصير برتقال خالص معصور، بدون إضافات",
+      "price": 165,
+      "discount_percentage": 10,
+      "category_id": "cat-5",
+      "image_url": "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 200,
+      "rating": 4.6
+    },
+    {
+      "id": "prod-13",
+      "name_en": "Almond Milk 500ml",
+      "name_ar": "حليب اللوز 500 مل",
+      "description_en": "Plant-based almond milk, creamy and nutritious",
+      "description_ar": "حليب اللوز النباتي، كريمي وغني بالتغذية",
+      "price": 125,
+      "discount_percentage": 5,
+      "category_id": "cat-5",
+      "image_url": "https://images.unsplash.com/photo-1599599810964-b70e6827e1e8?w=800&q=80",
+      "in_stock": true,
+      "stock_quantity": 180,
+      "rating": 4.4
+    }
+  ],
+  "offers": [
+    {
+      "id": "offer-1",
+      "title_en": "Fresh Vegetables Sale",
+      "title_ar": "تخفيف الخضار الطازة",
+      "description_en": "Get 20% off on all fresh vegetables - Limited time offer!",
+      "description_ar": "احصل على خصم 20% على جميع الخضار الطازة - عرض محدود الوقت!",
+      "discount_percentage": 20,
+      "image_url": "https://images.unsplash.com/photo-1491521089437-8c04eaf12e33?w=800&q=80",
+      "is_active": true
+    },
+    {
+      "id": "offer-2",
+      "title_en": "Fruit Bonanza",
+      "title_ar": "عرض الفاكهة المجنونة",
+      "description_en": "Buy 2 get 10% off on all fresh fruits",
+      "description_ar": "اشتري 2 واحصل على 10% خصم على جميع الفاكهة الطازة",
+      "discount_percentage": 10,
+      "image_url": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80",
+      "is_active": true
+    },
+    {
+      "id": "offer-3",
+      "title_en": "Dairy Delights",
+      "title_ar": "متع الألبان",
+      "description_en": "Special discount on dairy products - Up to 15% off!",
+      "description_ar": "خصم خاص على منتجات الألبان - خصم يصل إلى 15%!",
+      "discount_percentage": 15,
+      "image_url": "https://images.unsplash.com/photo-1628185286519-3bda8aab5308?w=800&q=80",
+      "is_active": true
+    }
+  ]
+}
