@@ -3,16 +3,14 @@
 import React from 'react';
 import { useCart } from '@/context/cart-context';
 import { useTranslation } from 'react-i18next';
-import { formatPrice } from '@/utils/price';
-import { Button } from "@/components/ui/button";
+import { formatPrice } from '@/utils/price-formatter';
+import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { useLang } from '@/context/lang-context';
 
 const CartPreview = () => {
   const { items, getTotalPrice, removeItem } = useCart();
-  const { t } = useTranslation();
-  const { lang } = useLang();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   if (items.length === 0) return null;
@@ -42,7 +40,7 @@ const CartPreview = () => {
               <div className="min-w-0">
                 <p className="font-medium text-sm truncate">{item.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formatPrice(item.price, lang)} × {item.quantity}
+                  {formatPrice(item.price, i18n.language)} × {item.quantity}
                 </p>
               </div>
             </div>
@@ -53,7 +51,7 @@ const CartPreview = () => {
       <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-sm">{t('total')}:</span>
-          <span className="font-bold text-xl">{formatPrice(getTotalPrice(), lang)}</span>
+          <span className="font-bold text-xl">{formatPrice(getTotalPrice(), i18n.language)}</span>
         </div>
         <Button onClick={() => navigate('/checkout')}>{t('proceedToCheckout')}</Button>
       </div>

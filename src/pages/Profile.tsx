@@ -6,27 +6,15 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-<<<<<<< HEAD
 import { useTranslation } from "react-i18next";
-=======
-import { useLang } from "@/context/lang-context";
-import { formatPrice } from "@/utils/price";
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 const Profile = () => {
   const { user, logout, updateProfile, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-<<<<<<< HEAD
   const { t } = useTranslation();
   const [showSensitive, setShowSensitive] = useState({ phone: false, address: false });
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || "");
-=======
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState(user?.name || "");
-  const [isSaving, setIsSaving] = useState(false);
-  const { lang } = useLang();
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   useEffect(() => {
     if (!loading && !isAuthenticated) navigate("/login");
@@ -77,41 +65,9 @@ const Profile = () => {
           <p className="opacity-80 text-sm mt-1">{user.email}</p>
         </div>
 
-<<<<<<< HEAD
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 bg-muted/30 rounded-xl border border-border flex justify-between items-center">
-=======
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-card rounded-lg border border-border p-4 text-center card-animate">
-            <p className="text-3xl font-bold text-primary mb-1">📦</p>
-            <p className="text-sm text-muted-foreground">Orders</p>
-            <p className="text-2xl font-bold">5</p>
-          </div>
-          <div className="bg-card rounded-lg border border-border p-4 text-center card-animate" style={{ animationDelay: "50ms" }}>
-            <p className="text-3xl font-bold text-primary mb-1">❤️</p>
-            <p className="text-sm text-muted-foreground">Wishlist Items</p>
-            <p className="text-2xl font-bold">12</p>
-          </div>
-          <div className="bg-card rounded-lg border border-border p-4 text-center card-animate" style={{ animationDelay: "100ms" }}>
-            <p className="text-3xl font-bold text-primary mb-1">💰</p>
-            <p className="text-sm text-muted-foreground">Wallet Balance</p>
-            <p className="text-2xl font-bold">{formatPrice(1500, lang)}</p>
-          </div>
-        </div>
-
-        {/* Menu Items */}
-        <div className="bg-card rounded-lg border border-border overflow-hidden shadow-md mb-8">
-          <h3 className="font-bold p-4 border-b border-border">Account Settings</h3>
-          {menuItems.map((item, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-4 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/30 transition-colors group list-item"
-              style={{ animationDelay: `${index * 30}ms` }}
-              onClick={() => item.path && navigate(item.path)}
-            >
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
               <div className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-muted-foreground" />
                 <span className="font-mono text-sm">{showSensitive.phone ? user.phone : maskValue(user.phone)}</span>

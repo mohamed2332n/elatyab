@@ -3,53 +3,31 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { apiService } from "@/services/api";
 import { showError } from "@/utils/toast";
 import { useNavigate } from "react-router-dom";
-<<<<<<< HEAD
 import { useAuth } from "@/context/auth-context";
 import { useTranslation } from "react-i18next";
 import { formatPrice } from "@/utils/price-formatter";
-=======
-import { useLang } from "@/context/lang-context";
-import { formatPrice } from "@/utils/price";
-import { useAuth } from "@/context/auth-context";
-import { ordersService } from "@/services/supabase/orders";
-
-interface OrderItem {
-  id: string;
-  product_name_en: string;
-  product_name_ar: string;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-}
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 interface Order {
   id: string;
-  order_number: string;
-  created_at: string;
+  date: string;
   status: string;
   total: number;
-  items: OrderItem[];
-  delivery_address: string;
+  items: number;
+  deliveryTime: string;
 }
 
 const Orders = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-<<<<<<< HEAD
   const { t, i18n } = useTranslation();
   const { isAuthenticated, loading: authLoading } = useAuth();
-=======
-  const { lang } = useLang();
-  const { user } = useAuth();
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-<<<<<<< HEAD
     if (!authLoading && !isAuthenticated) {
       navigate("/login");
     }
@@ -71,31 +49,6 @@ const Orders = () => {
       fetchOrders();
     }
   }, [isAuthenticated]);
-=======
-    if (user) {
-      fetchOrders();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchOrders = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await ordersService.getUserOrders(user.id);
-      if (!error && data) {
-        setOrders(data);
-      } else {
-        showError("Failed to load orders");
-      }
-    } catch (error) {
-      showError("Failed to load orders");
-      console.error("Error fetching orders:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   const getStatusEmoji = (status: string) => {
     switch (status) {
@@ -150,42 +103,9 @@ const Orders = () => {
                   <p className="text-sm text-muted-foreground">
                     {order.items} {t('items')}
                   </p>
-<<<<<<< HEAD
                   <div className="space-x-2 rtl:space-x-reverse">
                     <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)}>
                       {t('viewAll')}
-=======
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg text-green-600">{formatPrice(order.total, lang)}</p>
-                  <div className="flex items-center mt-2 justify-end gap-2 bg-muted/50 rounded-full px-3 py-1">
-                    <span className="text-xs font-medium uppercase tracking-wide">
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-border/30 pt-3 flex justify-between items-center">
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <span>📦</span> {order.items} {order.items === 1 ? "item" : "items"}
-                </p>
-                <div className="space-x-2 flex">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="transition-all hover:translate-x-1"
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                  >
-                    👁️ View Details
-                  </Button>
-                  {order.status === "Delivered" && (
-                    <Button 
-                      size="sm"
-                      className="gap-1 hover:scale-105 transition-transform"
-                    >
-                      <span>🔄</span> Reorder
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
                     </Button>
                     {order.status === "Delivered" && (
                       <Button size="sm">{t('buyNow')}</Button>

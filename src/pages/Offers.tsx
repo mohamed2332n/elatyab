@@ -1,51 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import OfferBanner from "@/components/offer-banner";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
-import { useNavigate } from "react-router-dom";
-import { offersService } from "@/services/supabase/offers";
-import { showError } from "@/utils/toast";
-import { useLang } from "@/context/lang-context";
-
-interface Offer {
-  id: string;
-  title_en: string;
-  title_ar: string;
-  description_en: string;
-  description_ar: string;
-  discount_percentage: number;
-  start_date: string;
-  end_date: string;
-  applicable_categories?: string[];
-}
 
 const Offers = () => {
   const { theme } = useTheme();
-  const navigate = useNavigate();
-  const { lang } = useLang();
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchOffers();
-  }, []);
-
-  const fetchOffers = async () => {
-    try {
-      const { data, error } = await offersService.getActiveOffers();
-      if (!error && data) {
-        setOffers(data);
-      } else {
-        showError("Failed to load offers");
-      }
-    } catch (error) {
-      showError("Failed to load offers");
-      console.error("Error fetching offers:", error);
-    } finally {
-      setLoading(false);
+  const [offers] = useState([
+    {
+      id: 1,
+      title: "Weekend Special",
+      description: "Potato-15 Carrot-29 Palak-29 Mushroom-35",
+      validTill: "12-05-2023",
+      products: ["Potato", "Carrot", "Palak", "Mushroom"]
+    },
+    {
+      id: 2,
+      title: "Combo Deal",
+      description: "Capsicum-59 Orange-89",
+      validTill: "15-05-2023",
+      products: ["Capsicum", "Orange"]
+    },
+    {
+      id: 3,
+      title: "Fresh Stock Arrived",
+      description: "Seasonal fruits at discounted prices",
+      validTill: "20-05-2023",
+      products: ["Mango", "Watermelon", "Pineapple"]
     }
+  ]);
+
+  const handleOrderNow = (offerId: number) => {
+    // In a real app, this would navigate to the offer details or products
+    console.log(`Ordering now for offer ${offerId}`);
   };
 
   return (
@@ -53,23 +41,17 @@ const Offers = () => {
       <div className="container mx-auto px-4 py-6 flex-grow">
         <h1 className="text-2xl font-bold mb-6">Special Offers</h1>
         
-        {loading ? (
-          <div className="text-center text-muted-foreground">Loading offers...</div>
-        ) : offers.length === 0 ? (
-          <div className="text-center text-muted-foreground">No active offers at the moment</div>
-        ) : (
-          <div className="space-y-6">
-            {offers.map((offer) => (
-              <OfferBanner
-                key={offer.id}
-                title={lang === "ar" ? offer.title_ar : offer.title_en}
-                description={lang === "ar" ? offer.description_ar : offer.description_en}
-                validTill={new Date(offer.end_date).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US")}
-                onOrderNow={() => navigate("/search")}
-              />
-            ))}
-          </div>
-        )}
+        <div className="space-y-6">
+          {offers.map((offer) => (
+            <OfferBanner
+              key={offer.id}
+              title={offer.title}
+              description={offer.description}
+              validTill={offer.validTill}
+              onOrderNow={() => handleOrderNow(offer.id)}
+            />
+          ))}
+        </div>
         
         {/* Additional Offer Categories */}
         <section className="mt-10">
