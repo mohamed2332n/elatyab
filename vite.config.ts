@@ -11,8 +11,7 @@ export default defineConfig(() => ({
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "DENY",
       "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-      // Simplified CSP for development to prevent NetworkError
-      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.unsplash.com https://*.supabase.co; font-src 'self' data:; connect-src 'self' https://dtuagfxysqmdprriyxzs.supabase.co https://*.supabase.co wss://*.supabase.co https://api.stripe.com;"
+      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://images.unsplash.com https://*.supabase.co; font-src 'self' data:; connect-src 'self' https://dtuagfxysqmdprriyxzs.supabase.co https://*.supabase.co wss://*.supabase.co https://api.stripe.com; frame-src 'self' https://js.stripe.com;"
     }
   },
   plugins: [
