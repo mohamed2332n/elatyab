@@ -3,9 +3,6 @@
 import { Product, User, WalletData, Order, OrderItem } from "@/lib/types";
 import { addCSRFProtection } from "@/utils/csrf";
 
-// Re-export Product for convenience since many files import it from here
-export type { Product };
-
 const mockProducts: Product[] = [
   {
     id: "1",
