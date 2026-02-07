@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Moon, Sun, ShoppingCart, Home, Wallet, FolderOpen, ClipboardList, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
@@ -16,21 +16,18 @@ import CategoryCard from "@/components/category-card";
 import OfferBanner from "@/components/offer-banner";
 import { Header } from "@/components/header";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-<<<<<<< HEAD
-=======
-import ProductCard from "@/components/product-card";
-import OfferBanner from "@/components/offer-banner";
-import CategoryCard from "@/components/category-card";
 import { toast } from "sonner";
 import { productsService } from "@/services/supabase/products";
 import { categoriesService } from "@/services/supabase/categories";
 import { offersService } from "@/services/supabase/offers";
+import { useLang } from "@/context/lang-context";
 
 interface Category {
   id: string;
   name_en: string;
   name_ar: string;
   icon: string;
+  item_count: number;
 }
 
 interface Product {
@@ -38,43 +35,29 @@ interface Product {
   name_en: string;
   name_ar: string;
   price: number;
-  old_price: number | null;
-  discount_percent: number;
-  weight: string;
+  discount_percentage: number;
+  image_url: string;
   is_in_stock: boolean;
-  images?: string[];
+  weight: string;
 }
 
 interface Offer {
   id: string;
   title_en: string;
   title_ar: string;
-  image_url: string;
+  description_en: string;
+  description_ar: string;
+  valid_till: string;
 }
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 const Index = () => {
   const { theme, toggleTheme } = useTheme();
   const { getTotalItems } = useCart();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const { lang } = useLang();
   const navigate = useNavigate();
   const cartCount = getTotalItems();
 
-<<<<<<< HEAD
-  const featuredProducts = [
-    { id: "1", name: i18n.language === 'ar' ? 'تفاح طازج' : "Fresh Apple", weight: "500g", originalPrice: 199, discountedPrice: 129, discountPercent: 35 },
-    { id: "2", name: i18n.language === 'ar' ? 'موز عضوي' : "Organic Banana", weight: "1 doz", originalPrice: 89, discountedPrice: 69, discountPercent: 22 },
-    { id: "3", name: i18n.language === 'ar' ? 'مانجو بريميوم' : "Premium Mango", weight: "1 kg", originalPrice: 299, discountedPrice: 199, discountPercent: 33 },
-    { id: "4", name: i18n.language === 'ar' ? 'سبانخ طازجة' : "Fresh Spinach", weight: "250g", originalPrice: 49, discountedPrice: 39, discountPercent: 20 }
-  ];
-
-  const categories = [
-    { id: 1, name: t('category'), icon: "🍎", itemCount: 45 },
-    { id: 2, name: t('category'), icon: "🥬", itemCount: 38 },
-    { id: 3, name: t('category'), icon: "🍿", itemCount: 22 },
-    { id: 4, name: t('category'), icon: "🎁", itemCount: 16 }
-  ];
-=======
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -82,7 +65,7 @@ const Index = () => {
 
   useEffect(() => {
     loadPageData();
-  }, []);
+  }, [lang]);
 
   const loadPageData = async () => {
     try {
@@ -94,11 +77,28 @@ const Index = () => {
       ]);
 
       if (!categoriesRes.error && categoriesRes.data) {
-        setCategories(categoriesRes.data);
+        // Map categories to include item_count (mocked for now as DB doesn't return it directly)
+        const mappedCategories: Category[] = categoriesRes.data.map(c => ({
+          ...c,
+          icon: c.icon || '📦',
+          item_count: 50, // Mock item count
+        }));
+        setCategories(mappedCategories);
       }
 
       if (!productsRes.error && productsRes.data) {
-        setFeaturedProducts(productsRes.data);
+        // Map products to match the Product interface used locally
+        const mappedProducts: Product[] = productsRes.data.map(p => ({
+          id: p.id,
+          name_en: p.name_en,
+          name_ar: p.name_ar,
+          price: p.price,
+          discount_percentage: p.discount_percentage,
+          image_url: p.image_url,
+          is_in_stock: p.is_in_stock,
+          weight: p.weight || '1 kg',
+        }));
+        setFeaturedProducts(mappedProducts);
       }
 
       if (!offersRes.error && offersRes.data) {
@@ -111,7 +111,6 @@ const Index = () => {
       setLoading(false);
     }
   };
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -154,9 +153,9 @@ const Index = () => {
             {categories.map((c) => (
               <CategoryCard 
                 key={c.id} 
-                name={c.name} 
+                name={lang === 'ar' ? c.name_ar : c.name_en} 
                 icon={c.icon} 
-                itemCount={c.itemCount}
+                itemCount={c.item_count}
                 onClick={() => navigate("/categories")} 
               />
             ))}
@@ -168,12 +167,14 @@ const Index = () => {
             <h3 className="text-xl font-bold">{t('specialOffers')}</h3>
             <Button variant="link" size="sm" onClick={() => navigate("/offers")}>{t('viewAll')}</Button>
           </div>
-          <OfferBanner
-            title={t('specialOffers')}
-            description="Potato-15 Carrot-29 Palak-29"
-            validTill="06-02-2026"
-            onOrderNow={() => navigate("/offers")}
-          />
+          {offers.length > 0 && (
+            <OfferBanner
+              title={lang === 'ar' ? offers[0].title_ar : offers[0].title_en}
+              description={lang === 'ar' ? offers[0].description_ar : offers[0].description_en}
+              validTill={new Date(offers[0].valid_till).toLocaleDateString(lang)}
+              onOrderNow={() => navigate("/offers")}
+            />
+          )}
         </section>
 
         <section className="mb-10">
@@ -183,7 +184,17 @@ const Index = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {featuredProducts.map((p) => (
-              <ProductCard key={p.id} {...p} />
+              <ProductCard 
+                key={p.id} 
+                product={{
+                  id: p.id,
+                  name: lang === 'ar' ? p.name_ar : p.name_en,
+                  price: p.price,
+                  discount: p.discount_percentage,
+                  image: p.image_url,
+                  inStock: p.is_in_stock,
+                }}
+              />
             ))}
           </div>
         </section>

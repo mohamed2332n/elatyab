@@ -5,17 +5,11 @@ import WalletCard from "@/components/wallet-card";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { showError, showSuccess } from "@/utils/toast";
-<<<<<<< HEAD
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/auth-context";
-import { useTranslation } from "react-i18next";
-import { formatPrice } from "@/utils/price-formatter";
-=======
 import { walletService } from "@/services/supabase/wallet";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { formatPrice } from "@/utils/price";
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
+import { useTranslation } from "react-i18next";
 
 interface WalletTransaction {
   id: number;
@@ -27,41 +21,14 @@ interface WalletTransaction {
 
 const Wallet = () => {
   const { theme } = useTheme();
-<<<<<<< HEAD
-  const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
-  const { isAuthenticated, loading: authLoading } = useAuth();
-=======
+  const { t } = useTranslation();
   const { user } = useAuth();
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const { lang } = useLang();
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (!authLoading && !isAuthenticated) navigate("/login");
-  }, [isAuthenticated, authLoading, navigate]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const fetchWalletData = async () => {
-        try {
-          setLoading(true);
-          const data = await apiService.getWalletData();
-          setWalletBalance(data.balance);
-          setTransactions(data.transactions);
-        } catch (error) {
-          showError("Failed to load wallet data");
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchWalletData();
-    }
-  }, [isAuthenticated]);
-=======
     if (user) {
       fetchWalletData();
     } else {
@@ -82,7 +49,15 @@ const Wallet = () => {
       }
 
       if (!transactionsRes.error && transactionsRes.data) {
-        setTransactions(transactionsRes.data);
+        // Map Supabase transactions to local interface
+        const mappedTransactions: WalletTransaction[] = transactionsRes.data.map((t: any) => ({
+          id: t.id,
+          type: t.type,
+          amount: t.amount,
+          description: t.description,
+          date: new Date(t.created_at).toLocaleDateString(lang),
+        }));
+        setTransactions(mappedTransactions);
       }
     } catch (error) {
       showError("Failed to load wallet data");
@@ -91,7 +66,6 @@ const Wallet = () => {
       setLoading(false);
     }
   };
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   const handleBuyPlan = async (planName: string, amount: number) => {
     if (!user) {
@@ -99,12 +73,6 @@ const Wallet = () => {
       return;
     }
     try {
-<<<<<<< HEAD
-      const result = await apiService.rechargeWallet(amount);
-      if (result.success) {
-        setWalletBalance(result.newBalance);
-        showSuccess(`${planName} recharge successful!`);
-=======
       const { data, error } = await walletService.rechargeWallet(user.id, amount, `Top-up: ${planName}`);
       if (!error && data) {
         setWalletBalance(data.wallet.balance);
@@ -113,14 +81,13 @@ const Wallet = () => {
         await fetchWalletData();
       } else {
         showError("Failed to recharge wallet");
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
       }
     } catch (error) {
       showError("Failed to recharge wallet");
     }
   };
 
-  if (authLoading || loading) return <div className="min-h-screen flex items-center justify-center animate-spin text-3xl">⏳</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center animate-spin text-3xl">⏳</div>;
 
   return (
     <div className="min-h-screen flex flex-col bg-background p-4 animate-in-fade">
@@ -129,12 +96,6 @@ const Wallet = () => {
           <span>💰</span> {t('wallet')}
         </h1>
         
-<<<<<<< HEAD
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-700 rounded-2xl p-8 mb-10 text-white shadow-xl flex justify-between items-center">
-          <div>
-            <p className="text-sm opacity-80 uppercase tracking-widest font-bold">Total Balance</p>
-            <h2 className="text-5xl font-extrabold mt-2">{formatPrice(walletBalance, i18n.language)}</h2>
-=======
         {/* Wallet Balance Card */}
         <div className="bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 rounded-2xl p-8 mb-10 text-white shadow-2xl card-animate">
           <div className="flex justify-between items-start">
@@ -164,19 +125,12 @@ const Wallet = () => {
             <p className="flex items-center gap-2">
               <span className="emoji-float">🎯</span> Your wallet is active and ready to use!
             </p>
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
           </div>
-          <Button variant="secondary" className="font-bold px-6 h-12 shadow-lg">Add Money</Button>
         </div>
 
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-6">Recharge Plans</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-<<<<<<< HEAD
-            <WalletCard amount={2000} planName="Small Family" credit={2000} onBuyNow={() => handleBuyPlan("Small Family", 2000)} />
-            <WalletCard amount={3000} planName="Medium Family" credit={3000} onBuyNow={() => handleBuyPlan("Medium Family", 3000)} />
-            <WalletCard amount={5000} planName="Large Family" credit={5000} onBuyNow={() => handleBuyPlan("Large Family", 5000)} />
-=======
             <div className="transform hover:scale-105 transition-transform">
               <WalletCard 
                 amount={2000} 
@@ -246,24 +200,6 @@ const Wallet = () => {
                 </div>
               ))
             )}
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-2xl font-bold mb-6">Recent Transactions</h2>
-          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
-            {transactions.map((t, i) => (
-              <div key={i} className="flex justify-between p-4 border-b border-border last:border-0 hover:bg-muted/10 transition-colors">
-                <div>
-                  <p className="font-medium">{t.description}</p>
-                  <p className="text-xs text-muted-foreground">{t.date}</p>
-                </div>
-                <div className={`font-bold ${t.type === "credit" ? "text-green-600" : "text-destructive"}`}>
-                  {t.type === "credit" ? "+" : "-"}{formatPrice(t.amount, i18n.language)}
-                </div>
-              </div>
-            ))}
           </div>
         </section>
       </div>

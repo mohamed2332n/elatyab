@@ -24,6 +24,7 @@ interface WishlistProduct {
   image_url: string;
   in_stock: boolean;
   category_id: string;
+  weight?: string; // Added weight for cart compatibility
 }
 
 const Wishlist = () => {
@@ -103,18 +104,18 @@ const Wishlist = () => {
     try {
       setAddingToCartId(product.id);
       const discountedPrice = product.price * (1 - product.discount_percentage / 100);
+      const productName = lang === "ar" ? product.name_ar : product.name_en;
       
-      const { error } = await addItem({
-        product_id: product.id,
-        quantity: 1,
-        unit_price: discountedPrice
+      // addItem returns Promise<void>, so we don't destructure { error }
+      await addItem({
+        id: product.id,
+        name: productName,
+        price: discountedPrice,
+        image: product.image_url,
+        weight: product.weight,
       });
 
-      if (!error) {
-        showSuccess("Added to cart from wishlist");
-      } else {
-        showError("Failed to add to cart");
-      }
+      showSuccess("Added to cart from wishlist");
     } catch (err) {
       console.error("Error adding to cart:", err);
       showError("Failed to add to cart");
@@ -165,6 +166,7 @@ const Wishlist = () => {
               <Button 
                 onClick={handleContinueShopping}
                 size="lg"
+                variant="outline"
                 className="w-full gap-2 hover:scale-105 transition-transform"
               >
                 <span>🛍️</span> 

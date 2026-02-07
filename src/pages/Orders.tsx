@@ -5,15 +5,11 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { showError } from "@/utils/toast";
 import { useNavigate } from "react-router-dom";
-<<<<<<< HEAD
-import { useAuth } from "@/context/auth-context";
-import { useTranslation } from "react-i18next";
-import { formatPrice } from "@/utils/price-formatter";
-=======
 import { useLang } from "@/context/lang-context";
 import { formatPrice } from "@/utils/price";
 import { useAuth } from "@/context/auth-context";
 import { ordersService } from "@/services/supabase/orders";
+import { useTranslation } from "react-i18next";
 
 interface OrderItem {
   id: string;
@@ -23,7 +19,6 @@ interface OrderItem {
   unit_price: number;
   total_price: number;
 }
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
 interface Order {
   id: string;
@@ -38,40 +33,13 @@ interface Order {
 const Orders = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-<<<<<<< HEAD
-  const { t, i18n } = useTranslation();
-  const { isAuthenticated, loading: authLoading } = useAuth();
-=======
+  const { t } = useTranslation();
   const { lang } = useLang();
   const { user } = useAuth();
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (!authLoading && !isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated, authLoading, navigate]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const fetchOrders = async () => {
-        try {
-          setLoading(true);
-          const fetchedOrders = await apiService.getOrders();
-          setOrders(fetchedOrders);
-        } catch (error) {
-          showError("Failed to load orders");
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchOrders();
-    }
-  }, [isAuthenticated]);
-=======
     if (user) {
       fetchOrders();
     } else {
@@ -84,7 +52,17 @@ const Orders = () => {
     try {
       const { data, error } = await ordersService.getUserOrders(user.id);
       if (!error && data) {
-        setOrders(data);
+        // Map data to match Order interface
+        const mappedOrders: Order[] = data.map((order: any) => ({
+          id: order.id,
+          order_number: order.order_number,
+          created_at: order.created_at,
+          status: order.status,
+          total: order.total,
+          items: order.items, // order_items array
+          delivery_address: order.delivery_address,
+        }));
+        setOrders(mappedOrders);
       } else {
         showError("Failed to load orders");
       }
@@ -95,7 +73,6 @@ const Orders = () => {
       setLoading(false);
     }
   };
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
 
   const getStatusEmoji = (status: string) => {
     switch (status) {
@@ -106,7 +83,7 @@ const Orders = () => {
     }
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin text-4xl">⏳</div>
@@ -134,61 +111,42 @@ const Orders = () => {
                   <div>
                     <h3 className="font-bold text-lg flex items-center gap-2">
                       <span>{getStatusEmoji(order.status)}</span>
-                      Order #{order.id}
+                      Order #{order.order_number}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {order.date} • {order.deliveryTime}
+                      {new Date(order.created_at).toLocaleDateString(lang)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-lg text-primary">{formatPrice(order.total, i18n.language)}</p>
-                    <span className="text-xs bg-muted px-2 py-1 rounded">{order.status}</span>
+                    <p className="font-bold text-lg text-green-600">{formatPrice(order.total, lang)}</p>
+                    <div className="flex items-center mt-2 justify-end gap-2 bg-muted/50 rounded-full px-3 py-1">
+                      <span className="text-xs font-medium uppercase tracking-wide">
+                        {order.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="border-t border-border/30 pt-3 flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">
-                    {order.items} {t('items')}
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <span>📦</span> {order.items.length} {order.items.length === 1 ? "item" : "items"}
                   </p>
-<<<<<<< HEAD
-                  <div className="space-x-2 rtl:space-x-reverse">
-                    <Button variant="outline" size="sm" onClick={() => navigate(`/orders/${order.id}`)}>
-                      {t('viewAll')}
-=======
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg text-green-600">{formatPrice(order.total, lang)}</p>
-                  <div className="flex items-center mt-2 justify-end gap-2 bg-muted/50 rounded-full px-3 py-1">
-                    <span className="text-xs font-medium uppercase tracking-wide">
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-border/30 pt-3 flex justify-between items-center">
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <span>📦</span> {order.items} {order.items === 1 ? "item" : "items"}
-                </p>
-                <div className="space-x-2 flex">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="transition-all hover:translate-x-1"
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                  >
-                    👁️ View Details
-                  </Button>
-                  {order.status === "Delivered" && (
+                  <div className="space-x-2 flex">
                     <Button 
+                      variant="outline" 
                       size="sm"
-                      className="gap-1 hover:scale-105 transition-transform"
+                      className="transition-all hover:translate-x-1"
+                      onClick={() => navigate(`/orders/${order.id}`)}
                     >
-                      <span>🔄</span> Reorder
->>>>>>> 2811c28a30579485cf3ae75f0af75c3bf0b92703
+                      👁️ View Details
                     </Button>
                     {order.status === "Delivered" && (
-                      <Button size="sm">{t('buyNow')}</Button>
+                      <Button 
+                        size="sm"
+                        className="gap-1 hover:scale-105 transition-transform"
+                      >
+                        <span>🔄</span> Reorder
+                      </Button>
                     )}
                   </div>
                 </div>
