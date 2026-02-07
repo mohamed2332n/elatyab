@@ -14,4 +14,10 @@ export default defineConfig(() => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Ensure environment variables are properly handled
+  envPrefix: 'VITE_', // Only expose VITE_ prefixed variables to client
+  define: {
+    // Prevents accidental exposure of non-VITE_ prefixed environment variables
+    __APP_ENV__: JSON.stringify(import.meta.env.VITE_APP_ENV || 'development'),
+  },
 }));
