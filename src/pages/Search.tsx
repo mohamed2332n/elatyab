@@ -3,76 +3,80 @@ import { useState, useEffect } from "react";
 import { Search, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
 import ProductCard from "@/components/product-card";
 import { isRateLimited } from "@/utils/rate-limiter";
-import { validateData, ValidationError } from "@/utils/validation";
+import { productsService } from "@/services/supabase/products";
+import { showError } from "@/utils/toast";
+
+interface Product {
+  id: string;
+  name_en: string;
+  name_ar: string;
+  description_en: string;
+  description_ar: string;
+  price: number;
+  discount_percentage: number;
+  image_url: string;
+  in_stock: boolean;
+  category_id: string;
+}
 
 const SearchPage = () => {
   const { theme } = useTheme();
+  const { lang } = useLang();
   const [searchQuery, setSearchQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 500 });
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-
-  // Mock search results - Enhanced with categories
-  const mockProducts = [
-    { id: "1", name: "Fresh Apple", weight: "500g", originalPrice: 199, discountedPrice: 129, discountPercent: 35, isInStock: true, category: "Fruits" },
-    { id: "2", name: "Organic Banana", weight: "1 dozen", originalPrice: 89, discountedPrice: 69, discountPercent: 22, isInStock: true, category: "Fruits" },
-    { id: "3", name: "Premium Mango", weight: "1 kg", originalPrice: 299, discountedPrice: 199, discountPercent: 33, isInStock: true, category: "Fruits" },
-    { id: "4", name: "Fresh Spinach", weight: "250g", originalPrice: 49, discountedPrice: 39, discountPercent: 20, isInStock: true, category: "Vegetables" },
-    { id: "5", name: "Red Grapes", weight: "500g", originalPrice: 149, discountedPrice: 99, discountPercent: 34, isInStock: true, category: "Fruits" },
-    { id: "6", name: "Carrots", weight: "1 kg", originalPrice: 59, discountedPrice: 45, discountPercent: 24, isInStock: true, category: "Vegetables" },
-    { id: "7", name: "Tomatoes", weight: "1 kg", originalPrice: 79, discountedPrice: 59, discountPercent: 25, isInStock: true, category: "Vegetables" },
-    { id: "8", name: "Bell Peppers", weight: "500g", originalPrice: 99, discountedPrice: 75, discountPercent: 24, isInStock: true, category: "Vegetables" },
-    { id: "9", name: "Lettuce", weight: "250g", originalPrice: 69, discountedPrice: 49, discountPercent: 29, isInStock: true, category: "Vegetables" },
-    { id: "10", name: "Onions", weight: "1 kg", originalPrice: 39, discountedPrice: 29, discountPercent: 26, isInStock: true, category: "Vegetables" },
-  ];
-
-  const categories = ["All", "Fruits", "Vegetables", "Snacks", "Combos"];
-
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load recent searches from localStorage
     const savedSearches = localStorage.getItem("recentSearches");
     if (savedSearches) {
       setRecentSearches(JSON.parse(savedSearches));
     }
+    fetchAllProducts();
   }, []);
 
-  // Sanitize input to prevent injection attacks
+  const fetchAllProducts = async () => {
+    try {
+      const { data, error } = await productsService.getAllProducts();
+      if (!error && data) {
+        setAllProducts(data);
+      } else {
+        showError("Failed to load products");
+      }
+    } catch (err) {
+      console.error("Error loading products:", err);
+      showError("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const sanitizeInput = (input: string): string => {
     return input
       .trim()
-      .replace(/[<>]/g, "") // Remove potentially dangerous characters
-      .substring(0, 100); // Limit length
+      .replace(/[<>]/g, "")
+      .substring(0, 100);
   };
 
   const validateSearchQuery = (query: string): { isValid: boolean; error?: string } => {
-    // Check for rate limiting
     if (isRateLimited("search", 1000)) {
       return { isValid: false, error: "Please wait before searching again" };
     }
-
-    // Basic validation
-    if (query.length < 1) {
-      return { isValid: false, error: "Search query is too short" };
-    }
-
-    if (query.length > 100) {
-      return { isValid: false, error: "Search query is too long" };
-    }
-
     return { isValid: true };
   };
 
   const handleSearch = (query: string) => {
     const sanitizedQuery = sanitizeInput(query);
-    
-    // Validate search query
     const validation = validateSearchQuery(sanitizedQuery);
+    
     if (!validation.isValid) {
       setError(validation.error || "Invalid search query");
       return;
@@ -81,18 +85,21 @@ const SearchPage = () => {
     setError(null);
     setSearchQuery(sanitizedQuery);
 
-    // Save to recent searches
     const updatedSearches = [sanitizedQuery, ...recentSearches.filter(item => item !== sanitizedQuery)].slice(0, 5);
     setRecentSearches(updatedSearches);
     localStorage.setItem("recentSearches", JSON.stringify(updatedSearches));
 
-    // Filter mock products based on sanitized query, price range, and category
-    const results = mockProducts.filter(product => 
-      product.name.toLowerCase().includes(sanitizedQuery.toLowerCase()) &&
-      product.discountedPrice >= priceRange.min &&
-      product.discountedPrice <= priceRange.max &&
-      (!selectedCategory || selectedCategory === "All" || product.category === selectedCategory)
-    );
+    const productName = lang === "ar" ? "name_ar" : "name_en";
+    const results = allProducts.filter(product => {
+      const productNameStr = product[productName as keyof Product] as string;
+      const discountedPrice = product.price * (1 - product.discount_percentage / 100);
+      return (
+        productNameStr.toLowerCase().includes(sanitizedQuery.toLowerCase()) &&
+        discountedPrice >= priceRange.min &&
+        discountedPrice <= priceRange.max &&
+        product.in_stock
+      );
+    });
     
     setSearchResults(results);
   };
@@ -115,68 +122,43 @@ const SearchPage = () => {
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <input 
-            type="text" 
-            placeholder="Find Products here!" 
-            className="w-full pl-10 pr-10 py-3 rounded-lg bg-muted border border-input focus:outline-none focus:ring-2 focus:ring-primary"
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+            type="text"
+            placeholder="Search products..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="w-full pl-10 pr-10 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-            {searchQuery && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={() => clearSearch()}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setShowFilters(!showFilters)}
+          {searchQuery && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        {/* Filter Panel */}
-        {showFilters && (
-          <div className="bg-card rounded-lg border border-border p-4 mb-6 card-animate">
-            <h3 className="font-bold mb-4 flex items-center gap-2">
-              <span>🎯</span> Filters
-            </h3>
-            
-            {/* Category Filter */}
-            <div className="mb-4">
-              <p className="text-sm font-medium mb-2">Category</p>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      setSelectedCategory(cat === "All" ? null : cat);
-                      handleSearch(searchQuery);
-                    }}
-                    className={`px-3 py-1 rounded-full text-sm transition-all ${
-                      (cat === "All" && !selectedCategory) || selectedCategory === cat
-                        ? "bg-primary text-white"
-                        : "bg-muted text-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Filters Button */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-semibold">Filters</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            {showFilters ? "Hide" : "Show"}
+          </Button>
+        </div>
 
+        {showFilters && (
+          <div className="bg-card border border-border rounded-lg p-4 mb-6">
             {/* Price Range Filter */}
             <div className="mb-4">
-              <p className="text-sm font-medium mb-2">Price Range: ₹{priceRange.min} - ₹{priceRange.max}</p>
+              <p className="text-sm font-medium mb-2">
+                Price Range: {formatPrice(priceRange.min, lang)} - {formatPrice(priceRange.max, lang)}
+              </p>
               <div className="space-y-2">
                 <input
                   type="range"
@@ -217,7 +199,6 @@ const SearchPage = () => {
               variant="outline"
               onClick={() => {
                 setPriceRange({ min: 0, max: 500 });
-                setSelectedCategory(null);
                 setShowFilters(false);
               }}
               className="w-full"
@@ -242,7 +223,18 @@ const SearchPage = () => {
             {searchResults.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {searchResults.map((product) => (
-                  <ProductCard key={product.id} {...product} />
+                  <ProductCard
+                    key={product.id}
+                    product={{
+                      id: product.id,
+                      name: lang === "ar" ? product.name_ar : product.name_en,
+                      price: product.price,
+                      discount: product.discount_percentage,
+                      image: product.image_url,
+                      inStock: product.in_stock,
+                    }}
+                    onAddClick={() => {}}
+                  />
                 ))}
               </div>
             ) : (

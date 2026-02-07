@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
 
 const Profile = () => {
   const { user, logout, updateProfile, isAuthenticated } = useAuth();
@@ -12,6 +14,7 @@ const Profile = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || "");
   const [isSaving, setIsSaving] = useState(false);
+  const { lang } = useLang();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -188,7 +191,7 @@ const Profile = () => {
           <div className="bg-card rounded-lg border border-border p-4 text-center card-animate" style={{ animationDelay: "100ms" }}>
             <p className="text-3xl font-bold text-primary mb-1">💰</p>
             <p className="text-sm text-muted-foreground">Wallet Balance</p>
-            <p className="text-2xl font-bold">₹1,500</p>
+            <p className="text-2xl font-bold">{formatPrice(1500, lang)}</p>
           </div>
         </div>
 

@@ -4,8 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LangProvider } from "@/context/lang-context";
 import { CartProvider } from "@/context/cart-context";
-import { WishlistProvider } from "@/context/wishlist-context";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import FloatingCart from "@/components/floating-cart";
 import Index from "./pages/Index";
@@ -21,6 +21,8 @@ import Checkout from "./pages/Checkout";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Wishlist from "./pages/Wishlist";
+import Addresses from "./pages/Addresses";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -106,6 +108,22 @@ const AppRoutes = () => (
         </ProtectedRoute>
       } 
     />
+    <Route 
+      path="/wishlist" 
+      element={
+        <ProtectedRoute>
+          <Wishlist />
+        </ProtectedRoute>
+      } 
+    />
+    <Route 
+      path="/addresses" 
+      element={
+        <ProtectedRoute>
+          <Addresses />
+        </ProtectedRoute>
+      } 
+    />
     
     {/* Catch-all */}
     <Route path="*" element={<NotFound />} />
@@ -114,9 +132,9 @@ const AppRoutes = () => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
+    <LangProvider>
+      <AuthProvider>
+        <CartProvider>
           <ThemeProvider>
             <TooltipProvider>
               <Toaster />
@@ -127,9 +145,9 @@ const App = () => (
               </BrowserRouter>
             </TooltipProvider>
           </ThemeProvider>
-        </WishlistProvider>
-      </CartProvider>
-    </AuthProvider>
+        </CartProvider>
+      </AuthProvider>
+    </LangProvider>
   </QueryClientProvider>
 );
 

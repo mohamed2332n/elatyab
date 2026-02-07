@@ -5,7 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
-import { apiService } from "@/services/api";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
+import { ordersService } from "@/services/supabase/orders";
+import { walletService } from "@/services/supabase/wallet";
+import { addressService, Address as DBAddress } from "@/services/supabase/addresses";
 import { showError, showSuccess } from "@/utils/toast";
 import { MapPin, Truck, CreditCard, Lock } from "lucide-react";
 
@@ -23,6 +27,7 @@ interface Address {
 const Checkout = () => {
   const { items, getTotalPrice, clearCart } = useCart();
   const { user } = useAuth();
+  const { lang } = useLang();
   const navigate = useNavigate();
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -40,31 +45,47 @@ const Checkout = () => {
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Load addresses from localStorage
+  // Load addresses from Supabase
   useEffect(() => {
-    const storedAddresses = localStorage.getItem(`addresses_${user?.id}`);
-    if (storedAddresses) {
-      const parsed = JSON.parse(storedAddresses);
-      setAddresses(parsed);
-      if (parsed.length > 0) {
-        setSelectedAddressId(parsed[0].id);
-      }
-    } else {
-      // Create default address
-      const defaultAddr: Address = {
-        id: `addr_${Date.now()}`,
-        label: "Home",
-        fullName: user?.name || "",
-        phone: user?.phone || "",
-        address: "123 Main Street, Apartment 4B",
-        city: "New Delhi",
-        postalCode: "110001",
-        isDefault: true,
-      };
-      setAddresses([defaultAddr]);
-      setSelectedAddressId(defaultAddr.id);
+    if (!user) {
+      navigate("/login");
+      return;
     }
-  }, [user]);
+
+    const loadAddresses = async () => {
+      try {
+        const dbAddresses = await addressService.getUserAddresses(user.id);
+        
+        if (dbAddresses.length > 0) {
+          // Map Supabase addresses to our interface
+          const mappedAddresses: Address[] = dbAddresses.map(addr => ({
+            id: addr.id!,
+            label: addr.label,
+            fullName: addr.recipient_name,
+            phone: addr.phone_number,
+            address: addr.street_address,
+            city: addr.city,
+            postalCode: addr.postal_code || "",
+            isDefault: addr.is_default
+          }));
+          
+          setAddresses(mappedAddresses);
+          
+          // Select default address or first one
+          const defaultAddr = mappedAddresses.find(a => a.isDefault);
+          setSelectedAddressId(defaultAddr?.id || mappedAddresses[0].id);
+        } else {
+          // No addresses - show form
+          setShowAddressForm(true);
+        }
+      } catch (err) {
+        console.error("Error loading addresses:", err);
+        showError(lang === "ar" ? "فشل تحميل العناوين" : "Failed to load addresses");
+      }
+    };
+
+    loadAddresses();
+  }, [user, navigate, lang]);
 
   useEffect(() => {
     // Redirect if cart is empty
@@ -90,20 +111,49 @@ const Checkout = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleAddAddress = () => {
-    if (!validateAddressForm()) return;
+  const handleAddAddress = async () => {
+    if (!validateAddressForm() || !user) return;
 
-    const address: Address = {
-      id: `addr_${Date.now()}`,
-      ...newAddress,
-    };
+    try {
+      setIsPlacingOrder(true);
+      
+      // Create address in Supabase
+      const createdAddress = await addressService.createAddress({
+        user_id: user.id,
+        label: newAddress.label,
+        recipient_name: newAddress.fullName,
+        phone_number: newAddress.phone,
+        street_address: newAddress.address,
+        building_number: "",
+        apartment: "",
+        governorate: "Cairo", // Default
+        city: newAddress.city,
+        postal_code: newAddress.postalCode,
+        is_default: addresses.length === 0 // First address is default
+      });
 
-    const updatedAddresses = [...addresses, address];
-    setAddresses(updatedAddresses);
-    localStorage.setItem(`addresses_${user?.id}`, JSON.stringify(updatedAddresses));
-    setSelectedAddressId(address.id);
-    setShowAddressForm(false);
-    showSuccess("Address added successfully!");
+      const address: Address = {
+        id: createdAddress.id!,
+        label: createdAddress.label,
+        fullName: createdAddress.recipient_name,
+        phone: createdAddress.phone_number,
+        address: createdAddress.street_address,
+        city: createdAddress.city,
+        postalCode: createdAddress.postal_code || "",
+        isDefault: createdAddress.is_default
+      };
+
+      const updatedAddresses = [...addresses, address];
+      setAddresses(updatedAddresses);
+      setSelectedAddressId(address.id);
+      setShowAddressForm(false);
+      showSuccess(lang === "ar" ? "تم إضافة العنوان" : "Address added successfully!");
+    } catch (err) {
+      console.error("Error adding address:", err);
+      showError(lang === "ar" ? "فشل إضافة العنوان" : "Failed to add address");
+    } finally {
+      setIsPlacingOrder(false);
+    }
   };
 
   const totalPrice = getTotalPrice();
@@ -116,24 +166,49 @@ const Checkout = () => {
       showError("Please select a delivery address");
       return;
     }
+    if (!user) {
+      showError("Please log in to place an order");
+      return;
+    }
 
     setIsPlacingOrder(true);
 
     try {
-      const result = await apiService.placeOrder(
-        items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-        })),
-        finalTotal
+      // Create order items array
+      const orderItems = items.map((item) => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+      }));
+
+      // Get selected address
+      const selectedAddress = addresses.find((addr) => addr.id === selectedAddressId);
+      const deliveryAddress = selectedAddress
+        ? `${selectedAddress.address}, ${selectedAddress.city} ${selectedAddress.postalCode}`
+        : "";
+
+      // Create order
+      const { data: order, error: orderError } = await ordersService.createOrder(
+        user.id,
+        orderItems,
+        finalTotal,
+        deliveryAddress,
+        paymentMethod === "wallet"
       );
 
-      if (result.success) {
+      if (!orderError && order) {
+        // Debit wallet if payment method is wallet
+        if (paymentMethod === "wallet") {
+          await walletService.debitWallet(
+            user.id,
+            finalTotal,
+            `Order ${order.order_number}`
+          );
+        }
+
         clearCart();
         showSuccess("🎉 Order placed successfully!");
-        navigate(`/orders/${result.orderId}`);
+        navigate(`/orders/${order.id}`);
       } else {
         showError("Failed to place order");
       }
@@ -348,7 +423,7 @@ const Checkout = () => {
 
               <div className="space-y-3">
                 {[
-                  { id: "wallet", name: "Digital Wallet", description: "₹1,500 available", emoji: "💰" },
+                  { id: "wallet", name: "Digital Wallet", description: `${formatPrice(1500, lang)} available`, emoji: "💰" },
                   { id: "upi", name: "UPI", description: "Google Pay, PhonePe, etc.", emoji: "📱" },
                   { id: "card", name: "Debit/Credit Card", description: "Visa, Mastercard, etc.", emoji: "💳" },
                   { id: "cod", name: "Cash on Delivery", description: "Pay when you receive", emoji: "🚚" },
@@ -399,7 +474,7 @@ const Checkout = () => {
                       <p className="font-medium">{item.name}</p>
                       <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                     </div>
-                    <p className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-semibold">{formatPrice(item.price * item.quantity, lang)}</p>
                   </div>
                 ))}
               </div>
@@ -410,7 +485,7 @@ const Checkout = () => {
                   <span className="flex items-center gap-1">
                     <span>🛒</span> Subtotal
                   </span>
-                  <span>₹{totalPrice.toFixed(2)}</span>
+                  <span>{formatPrice(totalPrice, lang)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="flex items-center gap-1">
@@ -422,13 +497,13 @@ const Checkout = () => {
                     {deliveryFee === 0 ? (
                       <span className="emoji-bounce">FREE ✨</span>
                     ) : (
-                      `₹${deliveryFee.toFixed(2)}`
+                      formatPrice(deliveryFee, lang)
                     )}
                   </span>
                 </div>
                 <div className="border-t border-border/20 pt-2 flex justify-between font-bold">
                   <span>Total</span>
-                  <span className="text-primary text-lg">₹{finalTotal.toFixed(2)}</span>
+                  <span className="text-primary text-lg">{formatPrice(finalTotal, lang)}</span>
                 </div>
               </div>
 
@@ -436,7 +511,7 @@ const Checkout = () => {
               {deliveryFee > 0 && (
                 <div className="mb-4 p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-center">
                   <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-                    <span className="emoji-wiggle">🎉</span> Add ₹{(500 - totalPrice).toFixed(2)} more for FREE delivery!
+                    <span className="emoji-wiggle">🎉</span> Add {formatPrice(500 - totalPrice, lang)} more for FREE delivery!
                   </p>
                 </div>
               )}

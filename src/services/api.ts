@@ -419,7 +419,7 @@ export const apiService = {
   // Recharge wallet with validation
   rechargeWallet: async (amount: number): Promise<{ success: boolean; newBalance: number }> => {
     if (!Number.isFinite(amount) || amount < 100 || amount > 10000) {
-      throw handleApiError(new Error('Recharge amount must be between ₹100 and ₹10000'));
+      throw handleApiError(new Error('Recharge amount must be between 100 EGP and 10000 EGP'));
     }
 
     try {

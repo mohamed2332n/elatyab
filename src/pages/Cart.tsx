@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/cart-context";
 import { useTheme } from "@/components/theme-provider";
 import { toast } from "sonner";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, getTotalItems, getTotalPrice } = useCart();
@@ -54,6 +56,7 @@ const Cart = () => {
   const totalPrice = getTotalPrice();
   const deliveryFee = totalPrice >= 500 ? 0 : 30;
   const finalTotal = totalPrice + deliveryFee;
+  const { lang } = useLang();
 
   return (
     <div className="min-h-screen flex flex-col bg-background animate-in-fade">
@@ -92,7 +95,7 @@ const Cart = () => {
                   <div className="ml-4 flex-grow">
                     <h3 className="font-semibold text-lg">{item.name}</h3>
                     <p className="text-sm text-muted-foreground">📦 {item.weight}</p>
-                    <p className="font-bold text-green-600 mt-1">₹{item.price}</p>
+                    <p className="font-bold text-green-600 mt-1">{formatPrice(item.price, lang)}</p>
                   </div>
                   
                   {/* Quantity Controls */}
@@ -120,7 +123,7 @@ const Cart = () => {
                   
                   {/* Subtotal and Remove */}
                   <div className="ml-4 text-right min-w-[80px]">
-                    <p className="font-bold text-lg">₹{(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-bold text-lg">{formatPrice(item.price * item.quantity, lang)}</p>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -164,7 +167,7 @@ const Cart = () => {
                   <span className="flex items-center gap-2">
                     <span>🛒</span> Subtotal
                   </span>
-                  <span className="font-semibold">₹{totalPrice.toFixed(2)}</span>
+                  <span className="font-semibold">{formatPrice(totalPrice, lang)}</span>
                 </div>
 
                 {/* Delivery Fee */}
@@ -176,7 +179,7 @@ const Cart = () => {
                     {deliveryFee === 0 ? (
                       <span className="emoji-bounce">FREE ✨</span>
                     ) : (
-                      `₹${deliveryFee.toFixed(2)}`
+                      formatPrice(deliveryFee, lang)
                     )}
                   </span>
                 </div>
@@ -184,7 +187,7 @@ const Cart = () => {
                 {/* Total */}
                 <div className="flex justify-between items-center pt-2 bg-primary/10 rounded-lg px-3 py-2">
                   <span className="font-bold text-base">Total Amount</span>
-                  <span className="font-bold text-xl text-primary">₹{finalTotal.toFixed(2)}</span>
+                  <span className="font-bold text-xl text-primary">{formatPrice(finalTotal, lang)}</span>
                 </div>
               </div>
               
@@ -208,8 +211,8 @@ const Cart = () => {
               {/* Free Delivery Message */}
               <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-black/20 text-center">
                 {deliveryFee > 0 ? (
-                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                    <span className="emoji-bounce">🎉</span> Add ₹{(500 - totalPrice).toFixed(2)} more for FREE delivery!
+                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                    <span className="emoji-bounce">🎉</span> Add {formatPrice(500 - totalPrice, lang)} more for FREE delivery!
                   </p>
                 ) : (
                   <p className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center justify-center gap-2">

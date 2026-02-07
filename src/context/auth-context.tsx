@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { showError, showSuccess } from "@/utils/toast";
+import { authService } from "@/services/supabase/auth";
+import { supabase } from "@/config/supabase";
 
 interface User {
   id: string;
@@ -16,7 +18,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, phone: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
@@ -35,27 +37,64 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if user is already logged in (from localStorage)
+  // Check if user is logged in and get profile
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const storedUser = localStorage.getItem("user");
-        const token = localStorage.getItem("authToken");
-
-        if (storedUser && token) {
-          // Validate token is still valid (in a real app, check with backend)
-          setUser(JSON.parse(storedUser));
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (authUser) {
+          // Get full profile from database
+          const { data: profile, error: profileError } = await authService.getUserProfile(authUser.id);
+          
+          if (!profileError && profile) {
+            setUser({
+              id: profile.id,
+              name: profile.name || authUser.user_metadata?.name || '',
+              email: profile.email || authUser.email || '',
+              phone: profile.phone || '',
+              avatar: profile.avatar_url,
+            });
+          } else {
+            // Fallback to auth user info
+            setUser({
+              id: authUser.id,
+              name: authUser.user_metadata?.name || '',
+              email: authUser.email || '',
+              phone: authUser.user_metadata?.phone || '',
+            });
+          }
         }
       } catch (err) {
         console.error("Auth check failed:", err);
-        localStorage.removeItem("user");
-        localStorage.removeItem("authToken");
       } finally {
         setLoading(false);
       }
     };
 
     checkAuth();
+
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const { data: profile } = await authService.getUserProfile(session.user.id);
+        if (profile) {
+          setUser({
+            id: profile.id,
+            name: profile.name || session.user.user_metadata?.name || '',
+            email: profile.email || session.user.email || '',
+            phone: profile.phone || '',
+            avatar: profile.avatar_url,
+          });
+        }
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -72,25 +111,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error("Invalid email format");
       }
 
-      // Mock authentication (in a real app, call backend API)
-      // For demo: any email/password combination works, but we store it
-      const userData: User = {
-        id: `user_${Date.now()}`,
-        name: email.split("@")[0],
-        email,
-        phone: "+91 9876543210",
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-      };
+      // Sign in with Supabase
+      const { data, error: signInError } = await authService.signIn(email, password);
+      
+      if (signInError) throw signInError;
+      if (!data.user) throw new Error("Sign in failed");
 
-      // Generate mock token
-      const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Get profile
+      const { data: profile, error: profileError } = await authService.getUserProfile(data.user.id);
+      
+      if (!profileError && profile) {
+        setUser({
+          id: profile.id,
+          name: profile.name || data.user.user_metadata?.name || '',
+          email: profile.email || data.user.email || '',
+          phone: profile.phone || '',
+          avatar: profile.avatar_url,
+        });
+      }
 
-      // Store in localStorage
-      localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("authToken", token);
-
-      setUser(userData);
-      showSuccess(`Welcome back, ${userData.name}!`);
+      showSuccess(`Welcome back, ${data.user.email.split("@")[0]}!`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
@@ -115,7 +155,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error("Invalid email format");
       }
 
-      if (phone.length < 10) {
+      if (phone.replace(/\D/g, '').length < 10) {
         throw new Error("Phone number must be at least 10 digits");
       }
 
@@ -123,33 +163,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error("Password must be at least 6 characters");
       }
 
-      // Check if user already exists (in localStorage for demo)
-      const existingUsers = JSON.parse(localStorage.getItem("registeredEmails") || "[]");
-      if (existingUsers.includes(email)) {
-        throw new Error("Email already registered");
-      }
+      // Sign up with Supabase
+      const { data, error: signUpError } = await authService.signUp(email, password, name, phone);
+      
+      if (signUpError) throw signUpError;
+      if (!data.user) throw new Error("Sign up failed");
 
-      // Mock signup (in a real app, call backend API)
-      const userData: User = {
-        id: `user_${Date.now()}`,
+      // Set user state with name and phone
+      setUser({
+        id: data.user.id,
         name,
         email,
         phone,
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-      };
+      });
 
-      // Generate mock token
-      const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      // Store email in registered list
-      existingUsers.push(email);
-      localStorage.setItem("registeredEmails", JSON.stringify(existingUsers));
-
-      // Store user data and token
-      localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("authToken", token);
-
-      setUser(userData);
       showSuccess("Account created successfully! 🎉");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Signup failed";
@@ -161,12 +189,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("authToken");
-    setUser(null);
-    setError(null);
-    showSuccess("Logged out successfully");
+  const logout = async () => {
+    try {
+      await authService.signOut();
+      setUser(null);
+      setError(null);
+      showSuccess("Logged out successfully");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Logout failed";
+      showError(message);
+    }
   };
 
   const updateProfile = async (updates: Partial<User>) => {
@@ -178,12 +210,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error("No user logged in");
       }
 
+      // Update profile in Supabase
+      const { data, error: updateError } = await authService.updateProfile(user.id, {
+        name: updates.name,
+        phone: updates.phone,
+        avatar_url: updates.avatar,
+      });
+
+      if (updateError) throw updateError;
+
       const updatedUser = { ...user, ...updates };
-
-      // Store updated user data
-      localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
-
       showSuccess("Profile updated successfully");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Profile update failed";

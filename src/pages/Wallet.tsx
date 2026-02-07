@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import WalletCard from "@/components/wallet-card";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
-import { apiService } from "@/services/api";
 import { showError, showSuccess } from "@/utils/toast";
+import { walletService } from "@/services/supabase/wallet";
+import { useAuth } from "@/context/auth-context";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
 
 interface WalletTransaction {
   id: number;
@@ -17,33 +20,55 @@ interface WalletTransaction {
 
 const Wallet = () => {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const { lang } = useLang();
 
   useEffect(() => {
-    const fetchWalletData = async () => {
-      try {
-        const data = await apiService.getWalletData();
-        setWalletBalance(data.balance);
-        setTransactions(data.transactions);
-      } catch (error) {
-        showError("Failed to load wallet data");
-        console.error("Error fetching wallet data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (user) {
+      fetchWalletData();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
-    fetchWalletData();
-  }, []);
+  const fetchWalletData = async () => {
+    if (!user) return;
+    try {
+      const [walletRes, transactionsRes] = await Promise.all([
+        walletService.getWallet(user.id),
+        walletService.getTransactions(user.id),
+      ]);
+
+      if (!walletRes.error && walletRes.data) {
+        setWalletBalance(walletRes.data.balance);
+      }
+
+      if (!transactionsRes.error && transactionsRes.data) {
+        setTransactions(transactionsRes.data);
+      }
+    } catch (error) {
+      showError("Failed to load wallet data");
+      console.error("Error fetching wallet data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBuyPlan = async (planName: string, amount: number) => {
+    if (!user) {
+      showError("Please log in to recharge wallet");
+      return;
+    }
     try {
-      const result = await apiService.rechargeWallet(amount);
-      if (result.success) {
-        setWalletBalance(result.newBalance);
-        showSuccess(`✨ ₹${amount} added to your wallet!`);
+      const { data, error } = await walletService.rechargeWallet(user.id, amount, `Top-up: ${planName}`);
+      if (!error && data) {
+        setWalletBalance(data.wallet.balance);
+        showSuccess(`✨ ${formatPrice(amount, lang)} added to your wallet!`);
+        // Refresh transactions
+        await fetchWalletData();
       } else {
         showError("Failed to recharge wallet");
       }
@@ -85,9 +110,9 @@ const Wallet = () => {
               <p className="text-lg opacity-90 flex items-center gap-2">
                 <span>💳</span> Wallet Balance
               </p>
-              <h2 className="text-5xl font-bold mt-3 flex items-center gap-3">
+                <h2 className="text-5xl font-bold mt-3 flex items-center gap-3">
                 <span className="emoji-bounce">✨</span>
-                ₹{walletBalance.toFixed(2)}
+                {formatPrice(walletBalance, lang)}
               </h2>
               <p className="text-base mt-4 opacity-95">
                 <span className="emoji-wiggle">📅</span> Last recharge: {transactions.length > 0 ? transactions[0].date : "N/A"}
@@ -183,7 +208,7 @@ const Wallet = () => {
                     <span className="text-xl">
                       {transaction.type === "credit" ? "✅" : "❌"}
                     </span>
-                    {transaction.type === "credit" ? "+" : "-"}₹{transaction.amount}
+                    {transaction.type === "credit" ? "+" : "-"}{formatPrice(transaction.amount, lang)}
                   </div>
                 </div>
               ))

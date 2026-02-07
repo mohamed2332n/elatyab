@@ -5,12 +5,24 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { apiService } from "@/services/api";
+import { productsService } from "@/services/supabase/products";
+import { wishlistService } from "@/services/supabase/wishlist";
+import { useCart } from "@/context/cart-context";
+import { useAuth } from "@/context/auth-context";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
 import { showError } from "@/utils/toast";
-import { useWishlist } from "@/context/wishlist-context";
 
 interface ProductCardProps {
-  id: string;
+  product?: {
+    id: string;
+    name: string;
+    price: number;
+    discount: number;
+    image: string;
+    inStock: boolean;
+  };
+  id?: string;
   name?: string;
   weight?: string;
   originalPrice?: number;
@@ -19,10 +31,12 @@ interface ProductCardProps {
   image?: string;
   isInStock?: boolean;
   className?: string;
+  onAddClick?: () => void;
 }
 
 const ProductCard = ({ 
-  id,
+  product,
+  id: propId,
   name: initialName,
   weight: initialWeight,
   originalPrice: initialOriginalPrice,
@@ -30,41 +44,45 @@ const ProductCard = ({
   discountPercent: initialDiscountPercent,
   image: initialImage,
   isInStock: initialIsInStock = true,
-  className 
+  className,
+  onAddClick
 }: ProductCardProps) => {
-  const { isInWishlist, toggleWishlist: toggleWishlistContext } = useWishlist();
-  const [quantity, setQuantity] = useState(0);
-  const [productData, setProductData] = useState({
-    name: initialName || "",
-    weight: initialWeight || "",
-    originalPrice: initialOriginalPrice || 0,
-    discountedPrice: initialDiscountedPrice || 0,
-    discountPercent: initialDiscountPercent || 0,
-    isInStock: initialIsInStock,
-    image: initialImage
-  });
-  const [loading, setLoading] = useState(!initialName);
-  const [showAddAnimation, setShowAddAnimation] = useState(false);
-  
+  const id = product?.id || propId;
   const navigate = useNavigate();
-  const isFavorite = isInWishlist(id);
+  const { user } = useAuth();
+  const { addItem } = useCart();
+  const { lang } = useLang();
+
+  const [quantity, setQuantity] = useState(0);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [productData, setProductData] = useState({
+    name: product?.name || initialName || "",
+    weight: initialWeight || "",
+    originalPrice: initialOriginalPrice || (product?.price || 0),
+    discountedPrice: product?.price || initialDiscountedPrice || 0,
+    discountPercent: product?.discount || initialDiscountPercent || 0,
+    isInStock: product?.inStock ?? initialIsInStock,
+    image: product?.image || initialImage
+  });
+  const [loading, setLoading] = useState(!initialName && !product);
+  const [showAddAnimation, setShowAddAnimation] = useState(false);
 
   // Fetch product data from server if not provided
   useEffect(() => {
-    if (!initialName) {
+    if (!initialName && !product && id) {
       const fetchProduct = async () => {
         try {
           setLoading(true);
-          const product = await apiService.getProduct(id);
-          if (product) {
+          const { data, error } = await productsService.getProduct(id);
+          if (!error && data) {
             setProductData({
-              name: product.name,
-              weight: product.weight,
-              originalPrice: product.originalPrice,
-              discountedPrice: product.discountedPrice,
-              discountPercent: product.discountPercent,
-              isInStock: product.isInStock,
-              image: product.images[0]
+              name: lang === "ar" ? data.name_ar : data.name_en,
+              weight: "",
+              originalPrice: data.price,
+              discountedPrice: data.price * (1 - data.discount_percentage / 100),
+              discountPercent: data.discount_percentage,
+              isInStock: data.in_stock,
+              image: data.image_url
             });
           }
         } catch (error) {
@@ -77,28 +95,44 @@ const ProductCard = ({
 
       fetchProduct();
     }
-  }, [id, initialName]);
+  }, [id, initialName, product, lang]);
+
+  // Check if wishlisted
+  useEffect(() => {
+    if (user && id) {
+      const checkWishlist = async () => {
+        const { data } = await wishlistService.isInWishlist(user.id, id);
+        setIsWishlisted(data || false);
+      };
+      checkWishlist();
+    }
+  }, [user, id]);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
     if (loading) return;
+    if (!id) return;
     
     try {
       setShowAddAnimation(true);
       setTimeout(() => setShowAddAnimation(false), 600);
 
-      // Validate with server before adding
-      const result = await apiService.addToCart({
-        id: id,
-        name: productData.name,
-        price: productData.discountedPrice,
-        image: productData.image,
-        weight: productData.weight
+      if (!user) {
+        showError("Please log in to add items to cart");
+        navigate("/login");
+        return;
+      }
+
+      const { error } = await addItem({
+        product_id: id,
+        quantity: 1,
+        unit_price: productData.discountedPrice
       });
-      
-      if (result.success) {
+
+      if (!error) {
         setQuantity(prev => prev + 1);
+        if (onAddClick) onAddClick();
       } else {
         showError("Failed to add item to cart");
       }
@@ -111,30 +145,47 @@ const ProductCard = ({
   const handleRemoveFromCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (loading) return;
+    if (loading || !id || !user) return;
     
     try {
-      // Validate with server before removing
-      const result = await apiService.removeFromCart(id);
-      
-      if (result.success) {
-        setQuantity(prev => Math.max(0, prev - 1));
-      } else {
-        showError("Failed to remove item from cart");
-      }
+      // For now, remove from cart by updating quantity to 0
+      setQuantity(prev => Math.max(0, prev - 1));
     } catch (error) {
       showError("Failed to remove item from cart");
       console.error("Error removing from cart:", error);
     }
   };
 
-  const handleToggleWishlist = (e: React.MouseEvent) => {
+  const handleToggleWishlist = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleWishlistContext(id);
+    
+    if (!user || !id) {
+      showError("Please log in to use wishlist");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      if (isWishlisted) {
+        const { error } = await wishlistService.removeFromWishlist(user.id, id);
+        if (!error) {
+          setIsWishlisted(false);
+        }
+      } else {
+        const { error } = await wishlistService.addToWishlist(user.id, id);
+        if (!error) {
+          setIsWishlisted(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling wishlist:", error);
+    }
   };
 
   const handleCardClick = () => {
-    navigate(`/product/${id}`);
+    if (id) {
+      navigate(`/product/${id}`);
+    }
   };
 
   if (loading) {
@@ -188,14 +239,14 @@ const ProductCard = ({
           size="icon" 
           className={cn(
             "absolute top-2 right-2 rounded-full transition-all",
-            isFavorite 
+            isWishlisted 
               ? "bg-destructive/20 hover:bg-destructive/30" 
               : "bg-background/80 hover:bg-background"
           )}
           onClick={handleToggleWishlist}
         >
-          <span className={cn("text-lg", isFavorite && "emoji-heartbeat")}>
-            {isFavorite ? "❤️" : "🤍"}
+          <span className={cn("text-lg", isWishlisted && "emoji-heartbeat")}>
+            {isWishlisted ? "❤️" : "🤍"}
           </span>
         </Button>
         
@@ -223,16 +274,18 @@ const ProductCard = ({
         </h4>
 
         {/* Weight/Size */}
-        <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
-          <span>📦</span> {productData.weight}
-        </p>
+        {productData.weight && (
+          <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
+            <span>📦</span> {productData.weight}
+          </p>
+        )}
 
         {/* Price Section */}
         <div className="flex items-center justify-between mt-auto">
           <div className="flex flex-col">
-            <span className="font-bold text-lg text-green-600">₹{productData.discountedPrice}</span>
+            <span className="font-bold text-lg text-green-600">{formatPrice(productData.discountedPrice, lang)}</span>
             {productData.originalPrice > productData.discountedPrice && (
-              <span className="text-xs text-muted-foreground line-through">₹{productData.originalPrice}</span>
+              <span className="text-xs text-muted-foreground line-through">{formatPrice(productData.originalPrice, lang)}</span>
             )}
           </div>
 

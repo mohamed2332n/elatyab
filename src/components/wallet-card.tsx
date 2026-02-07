@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
 
 interface WalletCardProps {
   amount: number;
@@ -17,15 +19,16 @@ const WalletCard = ({
   onBuyNow,
   className
 }: WalletCardProps) => {
+  const { lang } = useLang();
   return (
     <div className={`bg-card rounded-lg border border-border p-4 shadow-sm ${className}`}>
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="text-xl font-bold">₹{amount}</h3>
+          <h3 className="text-xl font-bold">{formatPrice(amount, lang)}</h3>
           <p className="text-muted-foreground">{planName}</p>
         </div>
         <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded">
-          Credit: ₹{credit}
+          Credit: {formatPrice(credit, lang)}
         </span>
       </div>
       

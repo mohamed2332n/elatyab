@@ -3,40 +3,64 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
-import { apiService } from "@/services/api";
 import { showError } from "@/utils/toast";
 import { useNavigate } from "react-router-dom";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
+import { useAuth } from "@/context/auth-context";
+import { ordersService } from "@/services/supabase/orders";
+
+interface OrderItem {
+  id: string;
+  product_name_en: string;
+  product_name_ar: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
 
 interface Order {
   id: string;
-  date: string;
+  order_number: string;
+  created_at: string;
   status: string;
   total: number;
-  items: number;
-  deliveryTime: string;
+  items: OrderItem[];
+  delivery_address: string;
 }
 
 const Orders = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { lang } = useLang();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const fetchedOrders = await apiService.getOrders();
-        setOrders(fetchedOrders);
-      } catch (error) {
-        showError("Failed to load orders");
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (user) {
+      fetchOrders();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
-    fetchOrders();
-  }, []);
+  const fetchOrders = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await ordersService.getUserOrders(user.id);
+      if (!error && data) {
+        setOrders(data);
+      } else {
+        showError("Failed to load orders");
+      }
+    } catch (error) {
+      showError("Failed to load orders");
+      console.error("Error fetching orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusEmoji = (status: string) => {
     switch (status) {
@@ -133,7 +157,7 @@ const Orders = () => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-lg text-green-600">₹{order.total.toFixed(2)}</p>
+                  <p className="font-bold text-lg text-green-600">{formatPrice(order.total, lang)}</p>
                   <div className="flex items-center mt-2 justify-end gap-2 bg-muted/50 rounded-full px-3 py-1">
                     <span className="text-xs font-medium uppercase tracking-wide">
                       {order.status}

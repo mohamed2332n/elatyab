@@ -2,165 +2,81 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Phone, Mail, Truck, CreditCard } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { ordersService } from "@/services/supabase/orders";
+import { useAuth } from "@/context/auth-context";
 import { showError } from "@/utils/toast";
+import { useLang } from "@/context/lang-context";
+import { formatPrice } from "@/utils/price";
 
-interface OrderDetailItem {
+interface OrderItem {
   id: string;
-  name: string;
-  price: number;
+  product_name_en: string;
+  product_name_ar: string;
   quantity: number;
-  image?: string;
-  weight?: string;
+  unit_price: number;
+  total_price: number;
 }
 
-interface OrderDetail {
+interface Order {
   id: string;
-  date: string;
-  status: "Confirmed" | "Packed" | "Out for delivery" | "Delivered";
+  order_number: string;
+  created_at: string;
+  status: string;
   total: number;
-  items: OrderDetailItem[];
-  deliveryTime: string;
-  deliveryAddress: {
-    name: string;
-    phone: string;
-    email: string;
-    address: string;
-    city: string;
-    postalCode: string;
-  };
-  paymentMethod: "wallet" | "upi" | "card" | "cod";
-  estimatedDelivery: string;
-  orderNotes?: string;
+  items: OrderItem[];
+  delivery_address: string;
 }
-
-// Mock order details data
-const mockOrderDetails: Record<string, OrderDetail> = {
-  "ORD-001": {
-    id: "ORD-001",
-    date: "2023-05-15",
-    status: "Delivered",
-    total: 450,
-    deliveryTime: "06:30 PM",
-    items: [
-      { id: "1", name: "Fresh Organic Apples", price: 129, quantity: 1, weight: "1 kg", image: "/placeholder.svg" },
-      { id: "2", name: "Organic Banana", price: 69, quantity: 2, weight: "1 dozen", image: "/placeholder.svg" },
-      { id: "5", name: "Red Grapes", price: 99, quantity: 2, weight: "500g", image: "/placeholder.svg" }
-    ],
-    deliveryAddress: {
-      name: "Ahmed Hassan",
-      phone: "+966-12-345-6789",
-      email: "ahmed@example.com",
-      address: "123 Main Street, Building A",
-      city: "Riyadh",
-      postalCode: "12345"
-    },
-    paymentMethod: "wallet",
-    estimatedDelivery: "2023-05-15",
-    orderNotes: "Please ring the bell twice"
-  },
-  "ORD-002": {
-    id: "ORD-002",
-    date: "2023-05-10",
-    status: "Out for delivery",
-    total: 320,
-    deliveryTime: "05:45 PM",
-    items: [
-      { id: "3", name: "Premium Mango", price: 199, quantity: 1, weight: "1 kg", image: "/placeholder.svg" },
-      { id: "4", name: "Fresh Spinach", price: 39, quantity: 1, weight: "250g", image: "/placeholder.svg" },
-      { id: "6", name: "Carrots", price: 45, quantity: 1, weight: "1 kg", image: "/placeholder.svg" }
-    ],
-    deliveryAddress: {
-      name: "Ahmed Hassan",
-      phone: "+966-12-345-6789",
-      email: "ahmed@example.com",
-      address: "123 Main Street, Building A",
-      city: "Riyadh",
-      postalCode: "12345"
-    },
-    paymentMethod: "upi",
-    estimatedDelivery: "2023-05-10"
-  },
-  "ORD-003": {
-    id: "ORD-003",
-    date: "2023-05-05",
-    status: "Confirmed",
-    total: 780,
-    deliveryTime: "07:00 PM",
-    items: [
-      { id: "7", name: "Orange Juice", price: 120, quantity: 2, image: "/placeholder.svg" },
-      { id: "8", name: "Watermelon", price: 199, quantity: 1, weight: "5 kg", image: "/placeholder.svg" },
-      { id: "5", name: "Red Grapes", price: 99, quantity: 2, weight: "500g", image: "/placeholder.svg" },
-      { id: "1", name: "Fresh Organic Apples", price: 129, quantity: 1, weight: "1 kg", image: "/placeholder.svg" }
-    ],
-    deliveryAddress: {
-      name: "Ahmed Hassan",
-      phone: "+966-12-345-6789",
-      email: "ahmed@example.com",
-      address: "123 Main Street, Building A",
-      city: "Riyadh",
-      postalCode: "12345"
-    },
-    paymentMethod: "card",
-    estimatedDelivery: "2023-05-08"
-  }
-};
 
 const getStatusInfo = (status: string) => {
-  switch (status) {
-    case "Confirmed":
-      return { emoji: "✅", color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-900/20", icon: "📦" };
-    case "Packed":
-      return { emoji: "📦", color: "text-yellow-600", bgColor: "bg-yellow-50 dark:bg-yellow-900/20", icon: "📦" };
-    case "Out for delivery":
-      return { emoji: "🚚", color: "text-orange-600", bgColor: "bg-orange-50 dark:bg-orange-900/20", icon: "🚚" };
-    case "Delivered":
-      return { emoji: "🎉", color: "text-green-600", bgColor: "bg-green-50 dark:bg-green-900/20", icon: "✨" };
+  switch (status?.toLowerCase()) {
+    case "pending":
+      return { emoji: "⏳", color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-900/20" };
+    case "confirmed":
+      return { emoji: "✅", color: "text-green-600", bgColor: "bg-green-50 dark:bg-green-900/20" };
+    case "shipped":
+      return { emoji: "🚚", color: "text-orange-600", bgColor: "bg-orange-50 dark:bg-orange-900/20" };
+    case "delivered":
+      return { emoji: "🎉", color: "text-green-600", bgColor: "bg-green-50 dark:bg-green-900/20" };
+    case "cancelled":
+      return { emoji: "❌", color: "text-red-600", bgColor: "bg-red-50 dark:bg-red-900/20" };
     default:
-      return { emoji: "⏳", color: "text-gray-600", bgColor: "bg-gray-50 dark:bg-gray-900/20", icon: "⏳" };
-  }
-};
-
-const getPaymentMethodInfo = (method: string) => {
-  switch (method) {
-    case "wallet":
-      return { emoji: "💰", label: "Wallet" };
-    case "upi":
-      return { emoji: "📱", label: "UPI" };
-    case "card":
-      return { emoji: "💳", label: "Credit/Debit Card" };
-    case "cod":
-      return { emoji: "🚚", label: "Cash on Delivery" };
-    default:
-      return { emoji: "💳", label: "Payment" };
+      return { emoji: "📦", color: "text-gray-600", bgColor: "bg-gray-50 dark:bg-gray-900/20" };
   }
 };
 
 const OrderDetails = () => {
   const { theme } = useTheme();
+  const { lang } = useLang();
   const { orderId } = useParams<{ orderId: string }>();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call to fetch order details
+    if (!user || !orderId) {
+      showError("Order not found");
+      navigate("/orders");
+      return;
+    }
+
     const fetchOrderDetails = async () => {
       try {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        if (!orderId || !mockOrderDetails[orderId]) {
+        setLoading(true);
+        const { data, error } = await ordersService.getOrder(orderId);
+        
+        if (!error && data) {
+          setOrder(data);
+        } else {
           showError("Order not found");
           navigate("/orders");
-          return;
         }
-
-        setOrder(mockOrderDetails[orderId]);
       } catch (error) {
         showError("Failed to load order details");
+        console.error("Error fetching order details:", error);
         navigate("/orders");
       } finally {
         setLoading(false);
@@ -168,7 +84,7 @@ const OrderDetails = () => {
     };
 
     fetchOrderDetails();
-  }, [orderId, navigate]);
+  }, [orderId, user, navigate]);
 
   if (loading) {
     return (
@@ -211,195 +127,91 @@ const OrderDetails = () => {
   }
 
   const statusInfo = getStatusInfo(order.status);
-  const paymentInfo = getPaymentMethodInfo(order.paymentMethod);
 
   return (
     <div className="min-h-screen flex flex-col bg-background animate-in-fade">
       <div className="container mx-auto px-4 py-6 flex-grow">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
+          <Button 
+            variant="ghost" 
             onClick={() => navigate("/orders")}
-            className="hover:scale-110 transition-transform"
+            className="gap-2"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" /> Back
           </Button>
-          <div className="flex-grow">
-            <h1 className="text-3xl font-bold flex items-center gap-2 animate-in-slide-up">
-              <span>{statusInfo.emoji}</span> Order {order.id}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              <span className="emoji-wiggle">📅</span> {order.date}
-            </p>
+          <div>
+            <h1 className="text-3xl font-bold">Order #{order.order_number}</h1>
+            <p className="text-muted-foreground">Placed on {new Date(order.created_at).toLocaleDateString(lang)}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Order Status */}
-            <div className={`rounded-lg border border-border p-6 card-animate ${statusInfo.bgColor}`}>
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <span className={statusInfo.color}>{statusInfo.emoji}</span> Order Status
-              </h2>
-              <p className={`text-lg font-bold ${statusInfo.color} mb-2`}>
-                {order.status}
-              </p>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <span>⏱️</span> Estimated delivery: {order.estimatedDelivery}
-              </p>
-            </div>
-
-            {/* Order Items */}
-            <div className="card-animate" style={{ animationDelay: "50ms" }}>
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <span>📦</span> Order Items ({order.items.length})
-              </h2>
-              <div className="space-y-3 bg-card rounded-lg border border-border p-4">
-                {order.items.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between pb-3 border-b border-border last:border-0 last:pb-0"
-                    style={{ animationDelay: `${index * 30}ms` }}
-                  >
-                    <div className="flex items-start gap-4 flex-grow">
-                      {item.image && (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                      )}
-                      <div className="flex-grow">
-                        <h3 className="font-medium">{item.name}</h3>
-                        {item.weight && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <span>📦</span> {item.weight}
-                          </p>
-                        )}
-                      </div>
+          {/* Order Items */}
+          <div className="lg:col-span-2">
+            <div className="bg-card rounded-lg border border-border p-6 mb-6">
+              <h2 className="text-2xl font-bold mb-4">Order Items</h2>
+              <div className="space-y-4">
+                {order.items.map((item) => (
+                  <div key={item.id} className="flex items-start justify-between border-b border-border pb-4 last:border-0">
+                    <div>
+                      <h3 className="font-semibold">
+                        {lang === "ar" ? item.product_name_ar : item.product_name_en}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-green-600">₹{item.price}</p>
-                      <p className="text-xs text-muted-foreground">
-                        × {item.quantity}
-                      </p>
+                      <p className="font-semibold">{formatPrice(item.unit_price, lang)}</p>
+                      <p className="text-sm text-muted-foreground">{formatPrice(item.total_price, lang)}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Delivery Address */}
-            <div className="card-animate" style={{ animationDelay: "100ms" }}>
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <span>📍</span> Delivery Address
-              </h2>
-              <div className="bg-card rounded-lg border border-border p-6">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-primary mt-0.5" />
-                    <div className="flex-grow">
-                      <p className="font-medium">{order.deliveryAddress.address}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {order.deliveryAddress.city}, {order.deliveryAddress.postalCode}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 pt-3 border-t border-border">
-                    <Phone className="h-5 w-5 text-primary" />
-                    <p className="text-sm">{order.deliveryAddress.phone}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-primary" />
-                    <p className="text-sm">{order.deliveryAddress.email}</p>
+            {/* Status */}
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-2xl font-bold mb-4">Order Status</h2>
+              <div className={`${statusInfo.bgColor} rounded-lg p-4 ${statusInfo.color}`}>
+                <div className="flex items-center gap-4">
+                  <span className="text-4xl">{statusInfo.emoji}</span>
+                  <div>
+                    <h3 className="font-bold text-lg capitalize">{order.status}</h3>
+                    <p className="text-sm">Your order is {order.status.toLowerCase()}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Order Summary */}
-            <div className="card-animate" style={{ animationDelay: "150ms" }}>
-              <h2 className="font-bold text-lg mb-4">Order Summary</h2>
-              <div className="bg-card rounded-lg border border-border p-5 space-y-4">
+          {/* Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-card rounded-lg border border-border p-6 sticky top-6">
+              <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+              <div className="space-y-3 mb-4 pb-4 border-b border-border">
                 <div className="flex justify-between">
-                  <p className="text-muted-foreground">Subtotal</p>
-                  <p className="font-medium">₹{Math.round(order.total * 0.85)}</p>
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{formatPrice(order.total, lang)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <p className="text-muted-foreground">Taxes</p>
-                  <p className="font-medium">₹{Math.round(order.total * 0.15)}</p>
+                  <span className="text-muted-foreground">Delivery Address</span>
                 </div>
-                {order.total < 500 && (
-                  <div className="flex justify-between text-orange-600">
-                    <p className="text-sm">Delivery Charge</p>
-                    <p className="font-medium">₹40</p>
-                  </div>
-                )}
-                <div className="border-t border-border pt-4 flex justify-between">
-                  <p className="font-bold">Total Price</p>
-                  <p className="font-bold text-green-600 text-lg">₹{order.total}</p>
-                </div>
+                <p className="text-sm text-foreground">{order.delivery_address}</p>
               </div>
-            </div>
-
-            {/* Payment Method */}
-            <div className="card-animate" style={{ animationDelay: "200ms" }}>
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <CreditCard className="h-5 w-5" /> Payment Method
-              </h2>
-              <div className="bg-card rounded-lg border border-border p-5">
-                <div className="flex items-center gap-3 bg-muted/50 rounded-lg p-4">
-                  <span className="text-2xl">{paymentInfo.emoji}</span>
-                  <div>
-                    <p className="font-medium">{paymentInfo.label}</p>
-                    <p className="text-xs text-muted-foreground">Order paid successfully</p>
-                  </div>
-                </div>
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total</span>
+                <span className="text-green-600">{formatPrice(order.total, lang)}</span>
               </div>
-            </div>
-
-            {/* Delivery Info */}
-            <div className="card-animate" style={{ animationDelay: "250ms" }}>
-              <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <Truck className="h-5 w-5" /> Delivery Time
-              </h2>
-              <div className="bg-card rounded-lg border border-border p-5">
-                <p className="font-bold text-lg flex items-center gap-2">
-                  <span className="emoji-bounce">🕐</span> {order.deliveryTime}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">Estimated delivery window</p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2 card-animate" style={{ animationDelay: "300ms" }}>
-              {order.status === "Delivered" && (
-                <Button className="w-full gap-2 hover:scale-105 transition-transform">
-                  <span>🔄</span> Reorder
-                </Button>
-              )}
-              <Button variant="outline" className="w-full gap-2 hover:scale-105 transition-transform">
-                <span>💬</span> Contact Support
+              <Button 
+                onClick={() => navigate("/orders")} 
+                className="w-full mt-4"
+                variant="outline"
+              >
+                View All Orders
               </Button>
             </div>
           </div>
         </div>
-
-        {/* Order Notes */}
-        {order.orderNotes && (
-          <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 card-animate" style={{ animationDelay: "350ms" }}>
-            <p className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2 mb-2">
-              <span>📝</span> Delivery Notes
-            </p>
-            <p className="text-sm text-blue-800 dark:text-blue-200">{order.orderNotes}</p>
-          </div>
-        )}
       </div>
     </div>
   );
