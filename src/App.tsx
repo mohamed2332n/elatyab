@@ -8,6 +8,20 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Security context to manage CSRF protection
+export const SecurityContext = {
+  // In a real app, this would be populated with actual CSRF tokens from the server
+  csrfToken: null as string | null,
+  
+  // Function to add CSRF protection to requests
+  addCSRFProtection: (headers: Record<string, string> = {}) => {
+    return {
+      ...headers,
+      'X-Requested-With': 'XMLHttpRequest',
+    };
+  }
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
