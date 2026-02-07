@@ -40,23 +40,45 @@ export interface Order {
 
 export const apiService = {
   login: async (email: string, password: string): Promise<boolean> => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    return !error;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return true;
+    } catch (err: any) {
+      console.error("Login detail error:", err);
+      throw err;
+    }
   },
 
   signup: async (name: string, email: string, phone: string, password: string): Promise<void> => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
-          phone: phone,
+    try {
+      // 1. Create Auth User
+      const { data, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name, phone: phone },
         },
-      },
-    });
-    if (error) throw error;
+      });
+
+      if (authError) throw authError;
+
+      // 2. Create Profile record if user was created
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            full_name: name,
+            phone: phone,
+          });
+        
+        if (profileError) console.error("Profile creation error:", profileError);
+      }
+    } catch (err: any) {
+      console.error("Signup detail error:", err);
+      throw err;
+    }
   },
 
   logout: async (): Promise<void> => {
@@ -64,30 +86,33 @@ export const apiService = {
   },
 
   getMe: async (): Promise<User | null> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-    
-    // Fetch additional data from profiles table
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-    return {
-      id: user.id,
-      name: profile?.full_name || user.user_metadata.full_name || user.email?.split('@')[0],
-      email: user.email || "",
-      phone: profile?.phone || user.user_metadata.phone || "",
-      address: profile?.address || "",
-    };
+      return {
+        id: user.id,
+        name: profile?.full_name || user.user_metadata.full_name || user.email?.split('@')[0],
+        email: user.email || "",
+        phone: profile?.phone || user.user_metadata.phone || "",
+        address: profile?.address || "",
+      };
+    } catch (err) {
+      return null;
+    }
   },
 
   getProducts: async (): Promise<Product[]> => {
     const { data, error } = await supabase.from('products').select('*');
     if (error) throw error;
     
-    return data.map(p => ({
+    return (data || []).map(p => ({
       id: p.id,
       name: p.name_en,
       description: p.description_en || "",
@@ -167,12 +192,12 @@ export const apiService = {
 
     if (error) throw error;
 
-    return data.map(o => ({
+    return (data || []).map(o => ({
       id: o.id,
       date: new Date(o.created_at).toLocaleDateString(),
       status: o.status,
       total: o.total_amount,
-      items: o.order_items[0].count,
+      items: o.order_items ? (o.order_items[0] as any).count : 0,
       deliveryTime: "06:00 PM"
     }));
   },
