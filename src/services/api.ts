@@ -41,18 +41,22 @@ export interface Order {
 export const apiService = {
   login: async (email: string, password: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      console.log("[API] Attempting login for:", email);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error("[Supabase Auth Error]:", error);
+        throw error;
+      }
       return true;
     } catch (err: any) {
-      console.error("Login detail error:", err);
+      console.error("[API Login Catch]:", err);
       throw err;
     }
   },
 
   signup: async (name: string, email: string, phone: string, password: string): Promise<void> => {
     try {
-      // 1. Create Auth User
+      console.log("[API] Attempting signup for:", email);
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -61,9 +65,11 @@ export const apiService = {
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error("[Supabase Signup Error]:", authError);
+        throw authError;
+      }
 
-      // 2. Create Profile record if user was created
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -73,10 +79,10 @@ export const apiService = {
             phone: phone,
           });
         
-        if (profileError) console.error("Profile creation error:", profileError);
+        if (profileError) console.error("[Profile Creation Error]:", profileError);
       }
     } catch (err: any) {
-      console.error("Signup detail error:", err);
+      console.error("[API Signup Catch]:", err);
       throw err;
     }
   },
