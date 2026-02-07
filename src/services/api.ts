@@ -207,32 +207,6 @@ export const apiService = {
     return { success: !error };
   },
 
-  removeFromCart: async (productId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false };
-    
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('product_id', productId);
-    
-    return { success: !error };
-  },
-
-  updateCartItem: async (productId: string, quantity: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false };
-    
-    const { error } = await supabase
-      .from('cart_items')
-      .update({ quantity })
-      .eq('user_id', user.id)
-      .eq('product_id', productId);
-    
-    return { success: !error };
-  },
-
   getCartItems: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
