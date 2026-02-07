@@ -23,14 +23,28 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      // Custom rule to prevent exposure of non-VITE_ prefixed environment variables
+      // Custom rule to prevent non-VITE_ prefixed environment variables in client-side code
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'import.meta',
+          property: 'env',
+          message: 'Direct access to import.meta.env is restricted. Use utility functions from "@/lib/env" instead to ensure proper VITE_ prefix validation.'
+        },
+        {
+          object: 'process',
+          property: 'env',
+          message: 'Client-side access to process.env is not allowed. Use import.meta.env with VITE_ prefix instead.'
+        }
+      ],
+      // Rule to prevent non-VITE_ prefixed environment variables
       'no-restricted-syntax': [
         'error',
         {
-          selector: "MemberExpression[object.property.name='env'][property.name=/^(?!VITE_).*$/]",
-          message: 'Only VITE_ prefixed environment variables are allowed in client-side code. Use VITE_ prefix for client-side environment variables.',
+          selector: 'MemberExpression[object.property.name="env"][object.object.name="meta"][property.name=/^(?!VITE_)/]',
+          message: 'Only VITE_ prefixed environment variables are allowed in client-side code to prevent accidental exposure of sensitive credentials.'
         }
       ]
     },
-  },
+  }
 );

@@ -1,9 +1,13 @@
-/**
+/** 
  * Utility functions for safely accessing environment variables
- * Only VITE_ prefixed environment variables are exposed to the client
+ * Only VITE_ prefixed environment variables are exposed to client-side code
  */
-
 export const getEnvVariable = (name: string, defaultValue?: string): string => {
+  // Enforce VITE_ prefix for client-side environment variables
+  if (!name.startsWith('VITE_')) {
+    throw new Error(`Client-side environment variable "${name}" must be prefixed with "VITE_". This prevents accidental exposure of sensitive credentials.`);
+  }
+  
   const value = import.meta.env[name];
   if (value === undefined && defaultValue === undefined) {
     throw new Error(`Environment variable ${name} is not defined and no default value provided`);
@@ -12,6 +16,11 @@ export const getEnvVariable = (name: string, defaultValue?: string): string => {
 };
 
 export const getEnvVariableBoolean = (name: string, defaultValue: boolean = false): boolean => {
+  // Enforce VITE_ prefix for client-side environment variables
+  if (!name.startsWith('VITE_')) {
+    throw new Error(`Client-side environment variable "${name}" must be prefixed with "VITE_". This prevents accidental exposure of sensitive credentials.`);
+  }
+  
   const value = import.meta.env[name];
   if (value === undefined) {
     return defaultValue;
@@ -20,6 +29,11 @@ export const getEnvVariableBoolean = (name: string, defaultValue: boolean = fals
 };
 
 export const getEnvVariableNumber = (name: string, defaultValue: number = 0): number => {
+  // Enforce VITE_ prefix for client-side environment variables
+  if (!name.startsWith('VITE_')) {
+    throw new Error(`Client-side environment variable "${name}" must be prefixed with "VITE_". This prevents accidental exposure of sensitive credentials.`);
+  }
+  
   const value = import.meta.env[name];
   if (value === undefined) {
     return defaultValue;
