@@ -4,29 +4,44 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProtectedMutation } from '@/hooks/use-protected-mutation';
 import { toast } from 'sonner';
+import { isRateLimited } from '@/utils/rate-limiter';
+import { validateData, itemSchema } from '@/utils/validation';
+import { z } from 'zod';
 
 // Example API service with CSRF protection
 const apiService = {
   // Example POST request with CSRF protection
   createItem: async (data: unknown) => {
+    // Validate data before sending
+    const validation = validateData(itemSchema, data);
+    if (!validation.success) {
+      throw new Error(`Validation error: ${validation.errors.join(', ')}`);
+    }
+
     const response = await fetch('/api/items', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest', // CSRF protection header
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(validation.data),
     });
     
     if (!response.ok) {
       throw new Error('Failed to create item');
     }
-    
     return response.json();
   },
   
   // Example DELETE request with CSRF protection
   deleteItem: async (id: string) => {
+    // Validate ID format
+    const idSchema = z.string().min(1, "ID is required");
+    const validation = validateData(idSchema, id);
+    if (!validation.success) {
+      throw new Error(`Validation error: ${validation.errors.join(', ')}`);
+    }
+
     const response = await fetch(`/api/items/${id}`, {
       method: 'DELETE',
       headers: {
@@ -37,14 +52,13 @@ const apiService = {
     if (!response.ok) {
       throw new Error('Failed to delete item');
     }
-    
     return response.json();
   }
 };
 
 const Index = () => {
   const [items, setItems] = useState<string[]>(['Item 1', 'Item 2', 'Item 3']);
-  
+
   // Protected mutation for creating items
   const createItemMutation = useProtectedMutation({
     mutationFn: apiService.createItem,
@@ -56,7 +70,7 @@ const Index = () => {
       toast.error(`Error: ${error.message}`);
     }
   });
-  
+
   // Protected mutation for deleting items
   const deleteItemMutation = useProtectedMutation({
     mutationFn: apiService.deleteItem,
@@ -68,15 +82,30 @@ const Index = () => {
       toast.error(`Error: ${error.message}`);
     }
   });
-  
+
   const handleCreateItem = () => {
-    createItemMutation.mutate({ name: `Item ${items.length + 1}` });
+    // Implement rate limiting
+    if (isRateLimited('createItem', 1000)) {
+      toast.error('Too many requests. Please wait before creating another item.');
+      return;
+    }
+
+    createItemMutation.mutate({
+      name: `Item ${items.length + 1}`,
+      description: `Description for item ${items.length + 1}`
+    });
   };
-  
+
   const handleDeleteItem = (id: string) => {
+    // Implement rate limiting
+    if (isRateLimited(`deleteItem-${id}`, 1000)) {
+      toast.error('Too many requests. Please wait before deleting again.');
+      return;
+    }
+
     deleteItemMutation.mutate(id);
   };
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto">
@@ -100,18 +129,18 @@ const Index = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
               <CardTitle>Protected Actions</CardTitle>
               <CardDescription>
-                These actions are protected against CSRF attacks
+                These actions are protected against CSRF attacks and rate limited
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 
-                onClick={handleCreateItem}
+                onClick={handleCreateItem} 
                 disabled={createItemMutation.isPending}
                 className="w-full"
               >
@@ -126,7 +155,7 @@ const Index = () => {
                       <span>{item}</span>
                       <Button 
                         variant="destructive" 
-                        size="sm"
+                        size="sm" 
                         onClick={() => handleDeleteItem(index.toString())}
                         disabled={deleteItemMutation.isPending}
                       >
@@ -138,20 +167,18 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Security Implementation</CardTitle>
-              <CardDescription>
-                How CSRF protection is implemented
-              </CardDescription>
+              <CardDescription>How security measures are implemented</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-medium text-blue-800 mb-2">Custom Headers</h4>
                   <p className="text-sm text-blue-700">
-                    All state-changing requests include the header:
+                    All state-changing requests include the header: 
                     <code className="block bg-white p-2 mt-1 rounded">X-Requested-With: XMLHttpRequest</code>
                   </p>
                 </div>
@@ -164,16 +191,23 @@ const Index = () => {
                 </div>
                 
                 <div className="p-4 bg-purple-50 rounded-lg">
-                  <h4 className="font-medium text-purple-800 mb-2">Server Validation</h4>
+                  <h4 className="font-medium text-purple-800 mb-2">Rate Limiting</h4>
                   <p className="text-sm text-purple-700">
-                    Backend should validate the presence of CSRF headers before processing requests
+                    Client-side rate limiting prevents abuse (1 request per second)
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-amber-50 rounded-lg">
+                  <h4 className="font-medium text-amber-800 mb-2">Data Validation</h4>
+                  <p className="text-sm text-amber-700">
+                    Zod validation ensures data integrity before sending requests
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        
+
         <div className="mt-12 text-center">
           <MadeWithDyad />
         </div>
