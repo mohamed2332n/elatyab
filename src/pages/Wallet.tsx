@@ -1,24 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import WalletCard from "@/components/wallet-card";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { apiService } from "@/services/api";
+import { showError, showSuccess } from "@/utils/toast";
+
+interface WalletTransaction {
+  id: number;
+  type: "credit" | "debit";
+  amount: number;
+  description: string;
+  date: string;
+}
 
 const Wallet = () => {
   const { theme } = useTheme();
-  const [walletBalance, setWalletBalance] = useState(1500);
-  const [transactions] = useState([
-    { id: 1, type: "credit", amount: 2000, description: "Wallet recharge", date: "2023-05-15" },
-    { id: 2, type: "debit", amount: 450, description: "Order payment", date: "2023-05-10" },
-    { id: 3, type: "credit", amount: 500, description: "Referral bonus", date: "2023-05-05" },
-  ]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleBuyPlan = (planName: string, amount: number) => {
-    // In a real app, this would open a payment gateway
-    console.log(`Buying ${planName} plan for ₹${amount}`);
-    setWalletBalance(prev => prev + amount);
+  useEffect(() => {
+    const fetchWalletData = async () => {
+      try {
+        const data = await apiService.getWalletData();
+        setWalletBalance(data.balance);
+        setTransactions(data.transactions);
+      } catch (error) {
+        showError("Failed to load wallet data");
+        console.error("Error fetching wallet data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWalletData();
+  }, []);
+
+  const handleBuyPlan = async (planName: string, amount: number) => {
+    try {
+      const result = await apiService.rechargeWallet(amount);
+      if (result.success) {
+        setWalletBalance(result.newBalance);
+        showSuccess(`₹${amount} added to your wallet!`);
+      } else {
+        showError("Failed to recharge wallet");
+      }
+    } catch (error) {
+      showError("Failed to recharge wallet");
+      console.error("Error recharging wallet:", error);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="container mx-auto px-4 py-6 flex-grow">
+          <h1 className="text-2xl font-bold mb-6">My Wallet</h1>
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -31,7 +77,9 @@ const Wallet = () => {
             <div>
               <p className="text-sm opacity-80">Wallet Balance</p>
               <h2 className="text-3xl font-bold mt-1">₹{walletBalance.toFixed(2)}</h2>
-              <p className="text-sm mt-2 opacity-90">Last recharge: 15 May 2023</p>
+              <p className="text-sm mt-2 opacity-90">
+                Last recharge: {transactions.length > 0 ? transactions[0].date : "N/A"}
+              </p>
             </div>
             <Button variant="secondary">Add Money</Button>
           </div>
@@ -41,23 +89,23 @@ const Wallet = () => {
         <section className="mb-8">
           <h2 className="text-xl font-bold mb-4">Recharge Plans</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <WalletCard
-              amount={2000}
-              planName="Small Family"
-              credit={2000}
-              onBuyNow={() => handleBuyPlan("Small Family", 2000)}
+            <WalletCard 
+              amount={2000} 
+              planName="Small Family" 
+              credit={2000} 
+              onBuyNow={() => handleBuyPlan("Small Family", 2000)} 
             />
-            <WalletCard
-              amount={3000}
-              planName="Medium Family"
-              credit={3000}
-              onBuyNow={() => handleBuyPlan("Medium Family", 3000)}
+            <WalletCard 
+              amount={3000} 
+              planName="Medium Family" 
+              credit={3000} 
+              onBuyNow={() => handleBuyPlan("Medium Family", 3000)} 
             />
-            <WalletCard
-              amount={5000}
-              planName="Large Family"
-              credit={5000}
-              onBuyNow={() => handleBuyPlan("Large Family", 5000)}
+            <WalletCard 
+              amount={5000} 
+              planName="Large Family" 
+              credit={5000} 
+              onBuyNow={() => handleBuyPlan("Large Family", 5000)} 
             />
           </div>
         </section>
@@ -75,7 +123,9 @@ const Wallet = () => {
                   <p className="font-medium">{transaction.description}</p>
                   <p className="text-sm text-muted-foreground">{transaction.date}</p>
                 </div>
-                <div className={`text-right font-bold ${transaction.type === "credit" ? "text-green-500" : "text-destructive"}`}>
+                <div className={`text-right font-bold ${
+                  transaction.type === "credit" ? "text-green-500" : "text-destructive"
+                }`}>
                   {transaction.type === "credit" ? "+" : "-"}₹{transaction.amount}
                 </div>
               </div>

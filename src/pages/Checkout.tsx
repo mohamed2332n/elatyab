@@ -1,29 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/cart-context";
 import { useTheme } from "@/components/theme-provider";
+import { apiService } from "@/services/api";
+import { showError, showSuccess } from "@/utils/toast";
 
 const Checkout = () => {
   const { items, getTotalPrice, clearCart } = useCart();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("wallet");
+
+  useEffect(() => {
+    // Redirect if cart is empty
+    if (items.length === 0) {
+      navigate("/");
+    }
+  }, [items, navigate]);
 
   const totalPrice = getTotalPrice();
   const deliveryFee = totalPrice >= 500 ? 0 : 30;
   const finalTotal = totalPrice + deliveryFee;
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (items.length === 0) return;
+    
     setIsPlacingOrder(true);
-    // Simulate order placement
-    setTimeout(() => {
-      clearCart();
+    
+    try {
+      // Validate and place order with server
+      const result = await apiService.placeOrder(
+        items.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity
+        })),
+        finalTotal
+      );
+      
+      if (result.success) {
+        clearCart();
+        showSuccess("Order placed successfully!");
+        navigate(`/orders/${result.orderId}`);
+      } else {
+        showError("Failed to place order");
+      }
+    } catch (error) {
+      showError("Failed to place order");
+      console.error("Error placing order:", error);
+    } finally {
       setIsPlacingOrder(false);
-      navigate("/orders");
-    }, 2000);
+    }
   };
 
   if (items.length === 0) {
@@ -49,7 +81,6 @@ const Checkout = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <div className="container mx-auto px-4 py-6 flex-grow">
         <h1 className="text-2xl font-bold mb-6">Checkout</h1>
-        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Order Summary */}
           <div className="lg:col-span-2">
@@ -68,7 +99,6 @@ const Checkout = () => {
                 </div>
               </div>
             </div>
-            
             <div className="bg-card rounded-lg border border-border p-6">
               <h2 className="text-xl font-bold mb-4">Payment Method</h2>
               <div className="space-y-3">
@@ -80,7 +110,10 @@ const Checkout = () => {
                 ].map((method) => (
                   <div 
                     key={method.id} 
-                    className="flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted"
+                    className={`flex items-center justify-between p-3 border border-border rounded-lg cursor-pointer hover:bg-muted ${
+                      paymentMethod === method.id ? "ring-2 ring-primary" : ""
+                    }`}
+                    onClick={() => setPaymentMethod(method.id)}
                   >
                     <div>
                       <p className="font-medium">{method.name}</p>
@@ -88,7 +121,9 @@ const Checkout = () => {
                         <p className="text-sm text-muted-foreground">{method.description}</p>
                       )}
                     </div>
-                    <div className="w-5 h-5 rounded-full border border-input"></div>
+                    <div className={`w-5 h-5 rounded-full border border-input ${
+                      paymentMethod === method.id ? "bg-primary" : ""
+                    }`}></div>
                   </div>
                 ))}
               </div>
@@ -99,7 +134,6 @@ const Checkout = () => {
           <div>
             <div className="bg-card rounded-lg border border-border p-6 sticky top-6">
               <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-              
               <div className="space-y-4 mb-6">
                 {items.map((item) => (
                   <div key={item.id} className="flex justify-between">
@@ -110,7 +144,6 @@ const Checkout = () => {
                     <p>₹{item.price * item.quantity}</p>
                   </div>
                 ))}
-                
                 <div className="border-t border-border pt-4 space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
@@ -126,16 +159,14 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
-              
               <Button 
                 className="w-full" 
-                size="lg"
-                onClick={handlePlaceOrder}
+                size="lg" 
+                onClick={handlePlaceOrder} 
                 disabled={isPlacingOrder}
               >
                 {isPlacingOrder ? "Placing Order..." : "Place Order"}
               </Button>
-              
               <div className="mt-4 text-center">
                 <p className="text-sm text-muted-foreground">
                   By placing your order, you agree to our Terms and Conditions

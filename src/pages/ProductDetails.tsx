@@ -1,11 +1,14 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { Heart, ShoppingCart, Share2, Star } from "lucide-react";
+import { Heart, ShoppingCart, Share2, Star, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { useCart } from "@/context/cart-context";
 import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
+import { apiService } from "@/services/api";
+import { showError } from "@/utils/toast";
+import { Product } from "@/services/api";
 
 const ProductDetails = () => {
   const { theme } = useTheme();
@@ -15,120 +18,88 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Mock product data with validation
-  const mockProducts: Record<string, any> = {
-    "1": {
-      id: "1",
-      name: "Fresh Organic Apples",
-      description: "Crisp and juicy organic apples sourced directly from local farms. Perfect for snacking or adding to your favorite recipes.",
-      weight: "1 kg",
-      originalPrice: 199,
-      discountedPrice: 129,
-      discountPercent: 35,
-      isInStock: true,
-      images: ["/placeholder.svg", "/placeholder.svg", "/placeholder.svg"],
-      tags: ["Organic", "Local", "Fresh"],
-      rating: 4.5,
-      reviewsCount: 128,
-      origin: "Himalayan Farms, India",
-      harvestDate: "2023-05-15",
-      freshness: "Very Fresh"
-    },
-    "2": {
-      id: "2",
-      name: "Organic Banana",
-      description: "Fresh organic bananas from sustainable farms.",
-      weight: "1 dozen",
-      originalPrice: 89,
-      discountedPrice: 69,
-      discountPercent: 22,
-      isInStock: true,
-      images: ["/placeholder.svg", "/placeholder.svg"],
-      tags: ["Organic", "Fresh"],
-      rating: 4.3,
-      reviewsCount: 95,
-      origin: "Kerala Farms, India",
-      harvestDate: "2023-05-18",
-      freshness: "Very Fresh"
-    }
-  };
 
   useEffect(() => {
-    // Validate product ID
-    if (!id || typeof id !== 'string') {
-      setError("Invalid product ID");
-      setLoading(false);
-      return;
-    }
+    const fetchProduct = async () => {
+      if (!id) {
+        showError("Product ID is missing");
+        navigate("/");
+        return;
+      }
 
-    // In a real app, this would be an API call with authentication
-    // For now, we check against mock data
-    const foundProduct = mockProducts[id];
-    
-    if (!foundProduct) {
-      setError("Product not found");
-      setLoading(false);
-      return;
-    }
+      try {
+        setLoading(true);
+        const fetchedProduct = await apiService.getProduct(id);
+        if (fetchedProduct) {
+          setProduct(fetchedProduct);
+        } else {
+          showError("Product not found");
+          navigate("/");
+        }
+      } catch (error) {
+        showError("Failed to load product");
+        console.error("Error fetching product:", error);
+        navigate("/");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Simulate API delay
-    setTimeout(() => {
-      setProduct(foundProduct);
-      setLoading(false);
-    }, 500);
-  }, [id]);
+    fetchProduct();
+  }, [id, navigate]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
     
-    // Validate product before adding to cart
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.discountedPrice,
-      image: product.images[0],
-      weight: product.weight
-    });
-    
-    toast.success("Added to cart");
-    navigate("/cart");
+    try {
+      await addItem({
+        id: product.id,
+        name: product.name,
+        price: product.discountedPrice,
+        image: product.images[0],
+        weight: product.weight
+      });
+      navigate("/cart");
+    } catch (error) {
+      showError("Failed to add to cart");
+      console.error("Error adding to cart:", error);
+    }
   };
 
   const toggleWishlist = () => {
     setIsWishlisted(!isWishlisted);
-    toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
-        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4">Loading product details...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
-          <div className="text-center max-w-md">
-            <div className="bg-muted w-24 h-24 rounded-full mx-auto flex items-center justify-center mb-6">
-              <div className="bg-gray-200 border-2 border-dashed rounded-xl w-12 h-12" />
+        <header className="sticky top-0 z-10 bg-background border-b border-border">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" onClick={() => navigate(-1)}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <div className="flex space-x-2">
+                <div className="h-8 w-8 bg-muted rounded-full animate-pulse"></div>
+                <div className="h-8 w-8 bg-muted rounded-full animate-pulse"></div>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold mb-2">Product Not Found</h2>
-            <p className="text-muted-foreground mb-6">
-              {error}
-            </p>
-            <Button onClick={() => navigate("/")}>Continue Shopping</Button>
+          </div>
+        </header>
+        <div className="container mx-auto px-4 py-6 flex-grow">
+          <div className="bg-muted h-64 w-full rounded-lg animate-pulse mb-4"></div>
+          <div className="space-y-4">
+            <div className="h-8 bg-muted rounded w-3/4 animate-pulse"></div>
+            <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
+            <div className="h-10 bg-muted rounded w-1/3 animate-pulse"></div>
+            <div className="grid grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-20 bg-muted rounded animate-pulse"></div>
+              ))}
+            </div>
+            <div className="h-12 bg-muted rounded animate-pulse"></div>
           </div>
         </div>
       </div>
@@ -140,8 +111,9 @@ const ProductDetails = () => {
       <div className="min-h-screen flex flex-col bg-background">
         <div className="container mx-auto px-4 py-6 flex-grow flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-2xl font-bold mb-2">Product Not Available</h2>
-            <Button onClick={() => navigate("/")}>Continue Shopping</Button>
+            <h2 className="text-2xl font-bold mb-2">Product Not Found</h2>
+            <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist or has been removed.</p>
+            <Button onClick={() => navigate("/")}>Go Home</Button>
           </div>
         </div>
       </div>
@@ -155,7 +127,7 @@ const ProductDetails = () => {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <Button variant="ghost" onClick={() => navigate(-1)}>
-              ← Back
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             <div className="flex space-x-2">
               <Button variant="ghost" size="icon" onClick={toggleWishlist}>
@@ -174,11 +146,7 @@ const ProductDetails = () => {
         <img 
           src={product.images[selectedImage]} 
           alt={product.name} 
-          className="w-full h-64 object-cover"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = "/placeholder.svg";
-          }}
+          className="w-full h-64 object-cover" 
         />
         <div className="absolute top-4 right-4 bg-destructive text-white text-xs font-bold px-2 py-1 rounded">
           {product.discountPercent}% OFF
@@ -187,17 +155,15 @@ const ProductDetails = () => {
       
       {/* Image Thumbnails */}
       <div className="flex justify-center space-x-2 mt-2 px-4">
-        {product.images.map((image: string, index: number) => (
+        {product.images.map((image, index) => (
           <img 
             key={index} 
             src={image} 
             alt={`Product ${index + 1}`} 
-            className={`w-16 h-16 object-cover border-2 ${selectedImage === index ? "border-primary" : "border-border"} rounded cursor-pointer`}
-            onClick={() => setSelectedImage(index)}
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = "/placeholder.svg";
-            }}
+            className={`w-16 h-16 object-cover border-2 ${
+              selectedImage === index ? "border-primary" : "border-border"
+            } rounded cursor-pointer`} 
+            onClick={() => setSelectedImage(index)} 
           />
         ))}
       </div>
@@ -229,7 +195,7 @@ const ProductDetails = () => {
         
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {product.tags.map((tag: string, index: number) => (
+          {product.tags.map((tag, index) => (
             <span key={index} className="bg-primary/10 text-primary text-xs px-2 py-1 rounded">
               {tag}
             </span>
@@ -271,7 +237,7 @@ const ProductDetails = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-10 w-10"
+              className="h-10 w-10" 
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
             >
               -
@@ -280,8 +246,8 @@ const ProductDetails = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-10 w-10"
-              onClick={() => setQuantity(Math.min(20, quantity + 1))}
+              className="h-10 w-10" 
+              onClick={() => setQuantity(quantity + 1)}
             >
               +
             </Button>
@@ -295,7 +261,7 @@ const ProductDetails = () => {
             className="flex-1" 
             onClick={toggleWishlist}
           >
-            <Heart className={`mr-2 ${isWishlisted ? "fill-destructive text-destructive" : ""}`} />
+            <Heart className={`mr-2 ${isWishlisted ? "fill-destructive text-destructive" : ""}`} /> 
             Wishlist
           </Button>
           <Button 
@@ -304,8 +270,7 @@ const ProductDetails = () => {
             onClick={handleAddToCart} 
             disabled={!product.isInStock}
           >
-            <ShoppingCart className="mr-2" />
-            Add to Cart
+            <ShoppingCart className="mr-2" /> Add to Cart
           </Button>
         </div>
       </div>

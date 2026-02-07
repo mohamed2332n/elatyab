@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CartProvider } from "@/context/cart-context";
 import FloatingCart from "@/components/floating-cart";
@@ -18,17 +18,6 @@ import Checkout from "./pages/Checkout";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
-// Simple authentication check (in a real app, this would check actual auth state)
-const isAuthenticated = () => {
-  // For demo purposes, we'll use localStorage
-  return !!localStorage.getItem("authenticated");
-};
-
-// Protected Route Component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  return isAuthenticated() ? <>{children}</> : <Navigate to="/" replace />;
-};
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -43,38 +32,23 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/cart" element={<Cart />} />
-              <Route path="/wallet" element={
-                <ProtectedRoute>
-                  <Wallet />
-                </ProtectedRoute>
-              } />
+              <Route path="/wallet" element={<Wallet />} />
               <Route path="/offers" element={<Offers />} />
               <Route path="/categories" element={<Categories />} />
-              <Route path="/orders" element={
-                <ProtectedRoute>
-                  <Orders />
-                </ProtectedRoute>
-              } />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/orders/:id" element={<Orders />} />
               <Route path="/search" element={<Search />} />
               <Route path="/product/:id" element={<ProductDetails />} />
-              <Route path="/checkout" element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/profile" element={<Profile />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-          </TooltipProvider>
-        </ThemeProvider>
-      </CartProvider>
-    </QueryClientProvider>
-  );
+        </TooltipProvider>
+      </ThemeProvider>
+    </CartProvider>
+  </QueryClientProvider>
+);
 
 export default App;
