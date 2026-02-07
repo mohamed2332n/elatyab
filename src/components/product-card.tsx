@@ -12,10 +12,7 @@ import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { formatPrice } from "@/utils/price";
 import { showError } from "@/utils/toast";
-<<<<<<< HEAD
 import { useTranslation } from "react-i18next";
-=======
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
 interface ProductCardProps {
   product?: {
@@ -54,7 +51,6 @@ const ProductCard = ({
   const id = product?.id || propId;
   const navigate = useNavigate();
   const { user } = useAuth();
-<<<<<<< HEAD
   const { addItem, items, updateQuantity } = useCart();
   const { lang } = useLang();
   const { t } = useTranslation();
@@ -62,12 +58,6 @@ const ProductCard = ({
   const cartItem = items.find(i => i.id === id);
   const quantity = cartItem?.quantity || 0;
 
-=======
-  const { addItem } = useCart();
-  const { lang } = useLang();
-
-  const [quantity, setQuantity] = useState(0);
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [productData, setProductData] = useState({
     name: product?.name || initialName || "",
@@ -89,7 +79,6 @@ const ProductCard = ({
           setLoading(true);
           const { data, error } = await productsService.getProduct(id);
           if (!error && data) {
-<<<<<<< HEAD
             const discountedPrice = data.price * (1 - data.discount_percentage / 100);
             setProductData({
               name: lang === "ar" ? data.name_ar : data.name_en,
@@ -98,15 +87,6 @@ const ProductCard = ({
               discountedPrice: discountedPrice,
               discountPercent: data.discount_percentage,
               isInStock: data.is_in_stock,
-=======
-            setProductData({
-              name: lang === "ar" ? data.name_ar : data.name_en,
-              weight: "",
-              originalPrice: data.price,
-              discountedPrice: data.price * (1 - data.discount_percentage / 100),
-              discountPercent: data.discount_percentage,
-              isInStock: data.in_stock,
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
               image: data.image_url
             });
           }
@@ -126,13 +106,8 @@ const ProductCard = ({
   useEffect(() => {
     if (user && id) {
       const checkWishlist = async () => {
-<<<<<<< HEAD
         const { isInWishlist } = await wishlistService.isInWishlist(user.id, id);
         setIsWishlisted(isInWishlist);
-=======
-        const { data } = await wishlistService.isInWishlist(user.id, id);
-        setIsWishlisted(data || false);
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       };
       checkWishlist();
     }
@@ -154,7 +129,6 @@ const ProductCard = ({
         return;
       }
 
-<<<<<<< HEAD
       await addItem({
         id: id,
         name: productData.name,
@@ -165,20 +139,6 @@ const ProductCard = ({
 
       if (onAddClick) onAddClick();
       
-=======
-      const { error } = await addItem({
-        product_id: id,
-        quantity: 1,
-        unit_price: productData.discountedPrice
-      });
-
-      if (!error) {
-        setQuantity(prev => prev + 1);
-        if (onAddClick) onAddClick();
-      } else {
-        showError("Failed to add item to cart");
-      }
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
     } catch (error) {
       showError("Failed to add item to cart");
       console.error("Error adding to cart:", error);
@@ -204,39 +164,6 @@ const ProductCard = ({
     }
 
     try {
-<<<<<<< HEAD
-      if (isWishlisted) {
-        const { error } = await wishlistService.removeFromWishlist(user.id, id);
-        if (!error) {
-          setIsWishlisted(false);
-        }
-      } else {
-        const { error } = await wishlistService.addToWishlist(user.id, id);
-        if (!error) {
-          setIsWishlisted(true);
-        }
-      }
-=======
-      // For now, remove from cart by updating quantity to 0
-      setQuantity(prev => Math.max(0, prev - 1));
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
-    } catch (error) {
-      console.error("Error toggling wishlist:", error);
-    }
-  };
-
-<<<<<<< HEAD
-=======
-  const handleToggleWishlist = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!user || !id) {
-      showError("Please log in to use wishlist");
-      navigate("/login");
-      return;
-    }
-
-    try {
       if (isWishlisted) {
         const { error } = await wishlistService.removeFromWishlist(user.id, id);
         if (!error) {
@@ -253,7 +180,6 @@ const ProductCard = ({
     }
   };
 
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
   const handleCardClick = () => {
     if (id) {
       navigate(`/product/${id}`);
@@ -292,11 +218,7 @@ const ProductCard = ({
           variant="ghost" 
           size="icon" 
           className={cn(
-<<<<<<< HEAD
             "absolute top-2 right-2 rtl:right-auto rtl:left-2 rounded-full transition-all",
-=======
-            "absolute top-2 right-2 rounded-full transition-all",
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
             isWishlisted 
               ? "bg-destructive/20 hover:bg-destructive/30" 
               : "bg-background/80 hover:bg-background"

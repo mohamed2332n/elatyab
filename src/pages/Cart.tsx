@@ -10,10 +10,7 @@ import { useAuth } from "@/context/auth-context";
 import { toast } from "sonner";
 import { useLang } from "@/context/lang-context";
 import { formatPrice } from "@/utils/price";
-<<<<<<< HEAD
 import { useTranslation } from "react-i18next";
-=======
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, getTotalItems, getTotalPrice } = useCart();
@@ -63,15 +60,6 @@ const Cart = () => {
     );
   }
 
-<<<<<<< HEAD
-=======
-  const totalItems = getTotalItems();
-  const totalPrice = getTotalPrice();
-  const deliveryFee = totalPrice >= 500 ? 0 : 30;
-  const finalTotal = totalPrice + deliveryFee;
-  const { lang } = useLang();
-
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
   return (
     <div className="min-h-screen flex flex-col bg-background animate-in-fade">
       <div className="container mx-auto px-4 py-6 flex-grow">

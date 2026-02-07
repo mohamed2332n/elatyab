@@ -9,10 +9,7 @@ import { walletService } from "@/services/supabase/wallet";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { formatPrice } from "@/utils/price";
-<<<<<<< HEAD
 import { useTranslation } from "react-i18next";
-=======
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
 interface WalletTransaction {
   id: number;
@@ -24,10 +21,7 @@ interface WalletTransaction {
 
 const Wallet = () => {
   const { theme } = useTheme();
-<<<<<<< HEAD
   const { t } = useTranslation();
-=======
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
   const { user } = useAuth();
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -55,7 +49,6 @@ const Wallet = () => {
       }
 
       if (!transactionsRes.error && transactionsRes.data) {
-<<<<<<< HEAD
         // Map Supabase transactions to local interface
         const mappedTransactions: WalletTransaction[] = transactionsRes.data.map((t: any) => ({
           id: t.id,
@@ -65,9 +58,6 @@ const Wallet = () => {
           date: new Date(t.created_at).toLocaleDateString(lang),
         }));
         setTransactions(mappedTransactions);
-=======
-        setTransactions(transactionsRes.data);
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
       }
     } catch (error) {
       showError("Failed to load wallet data");

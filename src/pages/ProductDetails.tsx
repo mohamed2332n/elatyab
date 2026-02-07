@@ -13,10 +13,7 @@ import { wishlistService } from "@/services/supabase/wishlist";
 import { useAuth } from "@/context/auth-context";
 import { showError } from "@/utils/toast";
 import ProductReviews from "@/components/product-reviews";
-<<<<<<< HEAD
 import { useTranslation } from "react-i18next";
-=======
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
 interface Product {
   id: string;
@@ -26,7 +23,6 @@ interface Product {
   description_ar: string;
   price: number;
   discount_percentage: number;
-<<<<<<< HEAD
   is_in_stock: boolean;
   category_id: string;
   image_url: string;
@@ -41,21 +37,13 @@ interface Product {
   originalPrice: number;
   name: string;
   description: string;
-=======
-  in_stock: boolean;
-  category_id: string;
-  image_url: string;
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 }
 
 const ProductDetails = () => {
   const { theme } = useTheme();
   const { lang } = useLang();
   const { addItem } = useCart();
-<<<<<<< HEAD
   const { t } = useTranslation();
-=======
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
   const { user } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -72,7 +60,6 @@ const ProductDetails = () => {
         setLoading(true);
         const { data: fetchedProduct, error } = await productsService.getProduct(id);
         if (!error && fetchedProduct) {
-<<<<<<< HEAD
           // Calculate derived properties and map to local Product interface
           const discountedPrice = fetchedProduct.price * (1 - fetchedProduct.discount_percentage / 100);
           const mappedProduct: Product = {
@@ -95,13 +82,6 @@ const ProductDetails = () => {
           if (user) {
             const { isInWishlist } = await wishlistService.isInWishlist(user.id, id);
             setIsWishlisted(isInWishlist);
-=======
-          setProduct(fetchedProduct);
-          // Check if wishlisted
-          if (user) {
-            const { data: wishlisted } = await wishlistService.isInWishlist(user.id, id);
-            setIsWishlisted(wishlisted || false);
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
           }
         } else {
           showError("Product not found");
@@ -115,11 +95,7 @@ const ProductDetails = () => {
       }
     };
     fetchProduct();
-<<<<<<< HEAD
   }, [id, navigate, user, lang]);
-=======
-  }, [id, navigate, user]);
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
   const handleAddToCart = async () => {
     if (!product || !user) return;
@@ -135,19 +111,11 @@ const ProductDetails = () => {
   };
 
   const toggleWishlist = async () => {
-<<<<<<< HEAD
     if (!user || !product) {
       showError("Please log in to use wishlist");
       navigate("/login");
       return;
     }
-=======
-    if (!user) {
-      showError("Please log in to use wishlist");
-      return;
-    }
-    if (!product) return;
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
     try {
       if (isWishlisted) {
@@ -311,20 +279,12 @@ const ProductDetails = () => {
           <div className="mt-12 border-t border-border pt-12">
             <ProductReviews
               productId={product.id}
-<<<<<<< HEAD
               productName={lang === 'ar' ? product.name_ar : product.name_en}
-=======
-              productName={product[`name_${lang}`]}
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
               productPrice={product.price}
             />
           </div>
         )}
-<<<<<<< HEAD
       </main>
-=======
-      </div>
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
     </div>
   );
 };

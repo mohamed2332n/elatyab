@@ -8,10 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLang } from "@/context/lang-context";
 import { formatPrice } from "@/utils/price";
-<<<<<<< HEAD
 import { MadeWithDyad } from "@/components/made-with-dyad";
-=======
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
 const Profile = () => {
   const { user, logout, updateProfile, isAuthenticated, loading } = useAuth();
@@ -20,11 +17,7 @@ const Profile = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || "");
   const [isSaving, setIsSaving] = useState(false);
-<<<<<<< HEAD
   const [showSensitive, setShowSensitive] = useState({ phone: false, address: false });
-=======
-  const { lang } = useLang();
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
 
   useEffect(() => {
     if (!loading && !isAuthenticated) navigate("/login");
@@ -104,7 +97,6 @@ const Profile = () => {
             <p className="text-3xl font-bold text-primary mb-1">💰</p>
             <p className="text-sm text-muted-foreground">Wallet Balance</p>
             <p className="text-2xl font-bold">{formatPrice(1500, lang)}</p>
-<<<<<<< HEAD
           </div>
         </div>
 
@@ -131,8 +123,6 @@ const Profile = () => {
                 {showSensitive.address ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
-=======
->>>>>>> 2814234658f732cf7780fa39b40cbd1e5251c425
           </div>
         </div>
 
