@@ -25,6 +25,7 @@ const mapProduct = (p: any, lang: string = 'en'): Product => ({
 });
 
 export const apiService = {
+  // Auth handled primarily in auth-context, but helper here
   login: async (email: string, pass: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
@@ -55,6 +56,7 @@ export const apiService = {
     } : null;
   },
 
+  // Products
   getProducts: async (lang: string = 'en'): Promise<Product[]> => {
     const { data, error } = await supabase
       .from('products')
@@ -74,6 +76,7 @@ export const apiService = {
     return mapProduct(data, lang);
   },
 
+  // Categories
   getCategories: async () => {
     const { data, error } = await supabase
       .from('categories')
@@ -84,6 +87,7 @@ export const apiService = {
     return data;
   },
 
+  // Wallet
   getWalletData: async (): Promise<WalletData> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
@@ -116,6 +120,7 @@ export const apiService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
+    // In a real app, this logic should be a Postgres Function (RPC) for atomicity
     const { data: wallet } = await supabase.from('wallets').select('balance').eq('user_id', user.id).single();
     const newBalance = (wallet?.balance || 0) + amount;
     
@@ -131,6 +136,7 @@ export const apiService = {
     return { success: true, newBalance };
   },
 
+  // Orders
   getOrders: async (): Promise<Order[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
@@ -173,11 +179,12 @@ export const apiService = {
 
     if (orderError) throw orderError;
 
+    // Item snapshots
     const orderItems = items.map(i => ({
       order_id: order.id,
       product_id: i.id,
       product_name_en: i.name,
-      product_name_ar: i.name,
+      product_name_ar: i.name, // Simplified for mock
       quantity: i.quantity,
       unit_price: i.price,
       total_price: i.price * i.quantity
@@ -188,6 +195,7 @@ export const apiService = {
     return { success: true, orderId: order.id };
   },
 
+  // Cart (Server Sync)
   addToCart: async (item: any) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false };
@@ -199,25 +207,29 @@ export const apiService = {
     return { success: !error };
   },
 
-  updateCartItem: async (productId: string, quantity: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false };
-    const { error } = await supabase
-      .from('cart_items')
-      .update({ quantity })
-      .eq('user_id', user.id)
-      .eq('product_id', productId);
-    return { success: !error };
-  },
-
   removeFromCart: async (productId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false };
+    
     const { error } = await supabase
       .from('cart_items')
       .delete()
       .eq('user_id', user.id)
       .eq('product_id', productId);
+    
+    return { success: !error };
+  },
+
+  updateCartItem: async (productId: string, quantity: number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false };
+    
+    const { error } = await supabase
+      .from('cart_items')
+      .update({ quantity })
+      .eq('user_id', user.id)
+      .eq('product_id', productId);
+    
     return { success: !error };
   },
 
