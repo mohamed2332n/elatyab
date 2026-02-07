@@ -41,15 +41,10 @@ export interface Order {
 export const apiService = {
   login: async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log("[API] Attempting login for:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        console.error("[Supabase Auth Error]:", error);
-        throw error;
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       return true;
     } catch (err: any) {
-      console.error("[API Login Catch]:", err);
       throw err;
     }
   },
@@ -64,7 +59,6 @@ export const apiService = {
 
   signup: async (name: string, email: string, phone: string, password: string): Promise<void> => {
     try {
-      console.log("[API] Attempting signup for:", email);
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -73,24 +67,18 @@ export const apiService = {
         },
       });
 
-      if (authError) {
-        console.error("[Supabase Signup Error]:", authError);
-        throw authError;
-      }
+      if (authError) throw authError;
 
       if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            full_name: name,
-            phone: phone,
-          });
-        
-        if (profileError) console.error("[Profile Creation Error]:", profileError);
+        // إنشاء البروفايل يدوياً لضمان وجود البيانات
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          full_name: name,
+          phone: phone,
+          address: ""
+        });
       }
     } catch (err: any) {
-      console.error("[API Signup Catch]:", err);
       throw err;
     }
   },
@@ -167,23 +155,29 @@ export const apiService = {
     };
   },
 
-  placeOrder: async (items: any[], total: number): Promise<{ success: boolean; orderId: string }> => {
+  placeOrder: async (items: any[], total: number, paymentMethod: string, address: string): Promise<{ success: boolean; orderId: string }> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
 
+    // 1. إنشاء الطلب الرئيسي
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: user.id,
         total_amount: total,
-        payment_method: 'card',
-        delivery_address: "Maadi, Cairo"
+        payment_method: paymentMethod,
+        delivery_address: address,
+        status: 'Confirmed'
       })
       .select()
       .single();
 
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error("Order Insert Error:", orderError);
+      throw orderError;
+    }
 
+    // 2. إنشاء محتويات الطلب
     const orderItems = items.map(item => ({
       order_id: order.id,
       product_id: item.id,
@@ -193,7 +187,10 @@ export const apiService = {
     }));
 
     const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      console.error("Order Items Insert Error:", itemsError);
+      throw itemsError;
+    }
 
     return { success: true, orderId: order.id };
   },
